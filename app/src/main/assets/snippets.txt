@@ -1,0 +1,1 @@
+https://stackoverflow.com/questions/13527624/how-we-can-execute-a-javascript-function-and-get-a-return-value-in-our-android-a

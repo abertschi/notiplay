@@ -1,0 +1,153 @@
+<html>
+  <!-- test with this video -->
+  <!-- src="https://www.youtube.com/embed/82TD06U4ppA?enablejsapi=1" -->
+  <body>
+    <iframe id="notiplay-iframe"
+            width="640" height="360"
+            src="https://www.youtube.com/embed/5Svp9E5orvw?enablejsapi=1"
+            enablejsapi="1"
+            frameborder="0">
+    </iframe>
+
+    <script type="text/javascript">
+     var tag = document.createElement('script');
+     tag.id = 'iframe-demo';
+     tag.src = 'https://www.youtube.com/iframe_api';
+
+     var firstScriptTag = document.getElementsByTagName('script')[0];
+     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+     var player;
+     var playerStats = {
+       ready: false,
+       readyCallables: []
+     };
+     
+     function onYouTubeIframeAPIReady() {
+       player = new YT.Player('notiplay-iframe', {
+         events: {
+           'onReady': onPlayerReady,
+           'onStateChange': onPlayerStateChange,
+           'onPlaybackQualityChange': onPlaybackQualityChange,
+           'onPlaybackRateChange': onPlaybackRateChange,
+           'onError': onError,
+           
+         }
+       });
+     }
+     
+     function onPlayerReady(event) {
+       console.log('player is ready now');
+       playerStats.ready = true;
+       playerStats.readyCallables.forEach(function(c){
+         c();
+       });
+       playerStats.readyCallables = [];
+       console.log('player is ready now');
+
+       if (NotiPlay) {
+         NotiPlay.onPlayerReady();
+       }
+     }
+
+     function onPlayerStateChange(event) {
+       if (NotiPlay) {
+         NotiPlay.onPlayerStateChange(event.data);
+       }
+     }
+
+     function onPlaybackQualityChange(event) {
+       if (NotiPlay) {
+         var arg = event.data;
+         console.log(arg);
+         NotiPlay.onPlaybackQualityChange(arg);
+       }
+     }
+
+     function onPlaybackRateChange(event) {
+       if (NotiPlay) {
+         NotiPlay.onPlaybackRateChange(event.data);
+       }
+     }
+
+     function onError(event) {
+       if (NotiPlay) {
+         NotiPlay.onErrorCode(event.data);
+       }
+     }
+
+     function _runWhenPlayerReady(callable) {
+       if (!playerStats.ready) {
+         playerStats.readyCallables.push(callable);
+       } else {
+         callable();
+       };
+     }
+
+     function playWithVideoId(videoId) {
+       _runWhenPlayerReady(function() {
+         player.loadVideoById(videoId);
+       });
+     }
+
+     function playerPlay() {
+       _runWhenPlayerReady(function() {
+         player.playVideo();
+       });
+
+     }
+
+     function seekTo(timeInSeconds) {
+       _runWhenPlayerReady(function() {
+         try{
+           player.seekTo(timeInSeconds, true);
+         } catch(e) {};
+       });
+     }
+
+     function seekForward(seconds) {
+       if (!seconds) {
+         seconds = 30;
+       }
+
+       try{
+         var t = player.getCurrentTime();
+         t = t + seconds;
+         t = Math.round(t);
+         player.seekTo(t, true);
+       } catch(e) {};
+     }
+
+     function seekBackward(seconds) {
+       if (!seconds) {
+         seconds = 30;
+       }
+
+       try{
+         var t = player.getCurrentTime();
+         t = t - seconds;
+         t = Math.round(t);
+
+         if (t < 0) {
+           t = 0;
+         }
+         
+         player.seekTo(t, true);
+       } catch(e) {};
+     }
+
+     function playerPause(){
+       try{
+         player.pauseVideo();
+       } catch(e) {};
+     }
+
+     function playerStop() {
+       try{
+         player.stopVideo();
+       } catch(e) {};
+     }
+     
+    </script>
+  </body>
+</html>

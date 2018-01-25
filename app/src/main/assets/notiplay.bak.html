@@ -1,0 +1,99 @@
+<html>
+  <!-- test with this video -->
+  <!-- src="https://www.youtube.com/embed/82TD06U4ppA?enablejsapi=1" -->
+  <body>
+    <iframe id="notiplay-iframe"
+            width="640" height="360"
+            src="https://www.youtube.com/embed/5Svp9E5orvw"
+            enablejsapi="1"
+            frameborder="0">
+    </iframe>
+
+    <script type="text/javascript">
+     var tag = document.createElement('script');
+     tag.id = 'iframe-demo';
+     tag.src = 'https://www.youtube.com/iframe_api';
+
+     var firstScriptTag = document.getElementsByTagName('script')[0];
+     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+     var player;
+     var playerStats = {
+       ready: false,
+       readyCallables: []
+     }
+     function onYouTubeIframeAPIReady() {
+       player = new YT.Player('notiplay-iframe', {
+         videoId: 'M7lc1UVf-VE',
+         events: {
+           'onReady': onPlayerReady,
+           'onStateChange': onPlayerStateChange,
+           'onPlaybackQualityChange': onPlaybackQualityChange,
+           'onPlaybackRateChange': onPlaybackRateChange,
+           'onError': onError,
+           
+         }
+       });
+
+       /* console.log(player);*/
+       setTimeout(function(){
+         // NotiPlay.hello();
+         console.log('trying to say hello');
+
+       }, 3000);
+     }
+     function onPlayerReady(event) {
+       /* event.target.playVideo();*/
+       console.log('player is ready now');
+       /* playerStats.ready = true;
+        * playerStats.readyCallables.forEach(function(c){
+        *   c();
+        * });
+        * playerStats.readyCallables = []*/
+     }
+
+     function onPlayerStateChange(event) {
+     }
+
+     function onPlaybackQualityChange(event) {
+     }
+
+     function onPlaybackRateChange(event) {
+     }
+
+     function onError(event) {
+     }
+
+     function playWithVideoId(videoId) {
+       console.log('playWithVideoId: ' + videoId);
+       
+       /* var exec = function() {
+        *   console.log('hello from exec');
+        *   console.log(videoId);
+        *   player.loadVideoById(videoId);
+        *   
+        * };
+        * 
+        * if (!playerStats.ready) {
+        *   playerStats.readyCallables.push(exec);
+        * } else {
+        *   exec();
+        * }*/
+     }
+
+     function playVideo() {
+       player.playVideo();
+     }
+
+     function pauseVideo(){
+       player.pauseVideo();
+     }
+
+     function stopVideo() {
+       player.stopVideo();
+     }
+
+     
+    </script>
+  </body>
+</html>

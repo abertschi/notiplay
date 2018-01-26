@@ -37,13 +37,11 @@
      }
      
      function onPlayerReady(event) {
-       console.log('player is ready now');
        playerStats.ready = true;
        playerStats.readyCallables.forEach(function(c){
          c();
        });
        playerStats.readyCallables = [];
-       console.log('player is ready now');
 
        if (NotiPlay) {
          NotiPlay.onPlayerReady();
@@ -51,6 +49,7 @@
      }
 
      function onPlayerStateChange(event) {
+       
        if (NotiPlay) {
          NotiPlay.onPlayerStateChange(event.data);
        }
@@ -59,7 +58,7 @@
      function onPlaybackQualityChange(event) {
        if (NotiPlay) {
          var arg = event.data;
-         console.log(arg);
+
          NotiPlay.onPlaybackQualityChange(arg);
        }
      }
@@ -146,6 +145,16 @@
        try{
          player.stopVideo();
        } catch(e) {};
+     }
+
+     function getPlaybackPosition() {
+       try {
+         var t = player.getCurrentTime();
+         t = Math.round(t);
+         if (NotiPlay) {
+           NotiPlay.onPlaybackPosition(t);
+         }
+       }catch(e) {}
      }
      
     </script>

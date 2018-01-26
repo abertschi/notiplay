@@ -2,7 +2,9 @@ package notiplay.abertschi.ch.ch;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import kotlin.text.Regex;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -13,5 +15,8 @@ public class ExampleUnitTest {
     @Test
     public void addition_isCorrect() throws Exception {
         assertEquals(4, 2 + 2);
+
+        String url = "https://www.youtube.com/watch?v=bgTM8uEMbg0";
+
     }
 }

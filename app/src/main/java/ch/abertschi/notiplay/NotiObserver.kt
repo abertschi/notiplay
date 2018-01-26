@@ -1,8 +1,5 @@
 package ch.abertschi.notiplay
 
-import android.os.Build.ID
-import android.webkit.JavascriptInterface
-
 /**
  * Created by abertschi on 25.01.18.
  */
@@ -30,8 +27,6 @@ interface NotiObserver {
         }
     }
 
-    enum class PlaybackQuality(val value: String) {
-    }
 
     enum class ErrorCode(val code: Int) {
         // java 2 – The request contains an invalid parameter value.
@@ -77,5 +72,9 @@ interface NotiObserver {
     fun onPlaybackRateChange(rate: Int): Unit
 
     fun onErrorCode(code: ErrorCode)
+
+    fun onPlaybackPosition(seconds: Int)
+
+
 
 }

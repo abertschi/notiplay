@@ -1,122 +1,170 @@
 package ch.abertschi.notiplay
 
+import android.app.Notification
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
-import android.content.Intent
-import android.graphics.PixelFormat
-import android.os.IBinder
-import android.util.Log
-import android.view.Gravity
-import android.view.ViewGroup
-import android.view.WindowManager
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
-
 import android.content.ContentValues.TAG
 import android.content.Context
-import android.os.Handler
-import java.nio.charset.Charset
+import android.content.Intent
+import android.media.session.MediaController
+import android.media.session.MediaSession
+import android.net.Uri
+import android.os.IBinder
+import android.util.Log
 import java.util.*
 import kotlin.concurrent.timerTask
-import android.os.Looper
 
 
 /**
  * Created by abertschi on 07.01.18.
+ * api doc: https://developers.google.com/youtube/iframe_api_reference#seekTo
+ * use media session and intent api
+ * http://www.binpress.com/tutorial/using-android-media-style-notifications-with-media-session-controls/165
+ * https://stackoverflow.com/questions/11095122/how-to-make-my-android-app-appear-in-the-share-list-of-another-specific-app
  */
 
-class NotiRunner : Service(), NotiRunnable {
+class NotiRunner : Service(), NotiObserver {
 
-    private val handler = Handler(Looper.getMainLooper())
-    private var webView: WebView? = null
-    private val webAsset: String = "notiplay.html"
-    private var observers: MutableList<NotiObserver> = ArrayList()
 
-    var debug: Boolean = true
+    private var drawer: WebViewDrawer? = null
+    private var videoId: String? = null
+    private var controller: MediaController? = null
+    private var session: MediaSession? = null
+    private var wantsPlaybackPosition = false
+    private var notificationBuilder: Notification.Builder? = null
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+    companion object {
+        val INTENT_VIDEO_ID: String = "video_id"
+        val ACTION_OPEN_IN_BROWSER = "action_open_in_browser"
+        val ACTION_PLAY = "action_play"
+        val ACTION_PAUSE = "action_pause"
+        val ACTION_REWIND = "action_rewind"
+        val ACTION_FAST_FORWARD = "action_fast_foward"
+        val ACTION_NEXT = "action_next"
+        val ACTION_PREVIOUS = "action_previous"
+        val ACTION_STOP = "action_stop"
+    }
 
-        val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val videoId = intent?.getStringExtra(INTENT_VIDEO_ID)
+        println("videoId from service: " + videoId)
+        println("intent: " + intent?.action)
+        handleIntent(intent)
 
-        val params = WindowManager.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_PHONE,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT
-        )
-        params.gravity = Gravity.TOP or Gravity.START
-        params.x = 0
-        params.y = 0
-        params.width = if (debug) 1000 else 0
-        params.height = if (debug) 1000 else 0
 
-        this.webView = WebView(this)
-
-        webView?.webViewClient = object : WebViewClient() {
-
-            override fun onReceivedError(view: WebView, request: WebResourceRequest,
-                                         error: WebResourceError) {
-                Log.d("Error", "loading web view: request: $request error: $error")
-            }
-
-            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest):
-                    WebResourceResponse? {
-
-                if (request.url.toString().contains("/endProcess")) {
-                    windowManager.removeView(webView)
-                    webView?.post { webView?.destroy() }
+        videoId?.run {
+            this@NotiRunner.videoId = videoId
+            if (drawer == null) {
+                drawer = WebViewDrawer(this@NotiRunner)
+                drawer?.addEventObserver(this@NotiRunner)
+                drawer?.setOnCloseCallback {
                     stopSelf()
-                    return WebResourceResponse("bgsType", "someEncoding", null)
-                } else {
-                    return null
                 }
-            }
+                drawer?.loadWebView()
 
-            override fun onPageFinished(view: WebView, url: String) {
-                //view.loadUrl("javascript:(function() { document.getElementById('ytplayer').click(); })()");
             }
+            buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
+
+            val timer = Timer()
+            timer.schedule(timerTask { drawer?.playVideoById(videoId!!) }, 3000)
+            initMediaSession()
 
         }
-        webView?.addJavascriptInterface(WebInterface(this, observers), "NotiPlay")
 
-        val webSettings = webView!!.settings
-        webSettings.javaScriptEnabled = true
-        webSettings.javaScriptCanOpenWindowsAutomatically = true
-        webSettings.javaScriptEnabled = true
-        webSettings.mediaPlaybackRequiresUserGesture = false
-        webSettings.builtInZoomControls = true
-        webSettings.pluginState = WebSettings.PluginState.ON
-        windowManager.addView(webView, params)
+        if (intent == null) {
+            return super.onStartCommand(Intent(), flags, startId)
+        }
+        return START_NOT_STICKY
+    }
 
-        var html = loadWebpage()
-        webView?.loadData(html, "text/html", null)
+    override fun onDestroy() {
+        super.onDestroy()
 
-        //val timer
-        val timer = Timer()
-        timer.schedule(timerTask { playVideoById("ESPJoAPhkB4") }, 3000)
-        timer.schedule(timerTask { seekForward() }, 10000)
-        timer.schedule(timerTask { seekForward(100) }, 11000)
-        timer.schedule(timerTask { seekForward(10) }, 12000)
-        timer.schedule(timerTask { seekBackward(40) }, 14000)
-        timer.schedule(timerTask { seekBackward(5) }, 16000)
+    }
 
-        return Service.START_STICKY
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null || intent.action == null)
+            return
+
+        val action = intent.action
+
+        if (action.equals(ACTION_PLAY, ignoreCase = true)) {
+            controller?.transportControls?.play()
+        } else if (action.equals(ACTION_PAUSE, ignoreCase = true)) {
+            controller?.transportControls?.pause()
+        } else if (action.equals(ACTION_FAST_FORWARD, ignoreCase = true)) {
+            controller?.transportControls?.fastForward()
+        } else if (action.equals(ACTION_REWIND, ignoreCase = true)) {
+            controller?.transportControls?.rewind()
+        } else if (action.equals(ACTION_PREVIOUS, ignoreCase = true)) {
+            controller?.transportControls?.skipToPrevious()
+        } else if (action.equals(ACTION_NEXT, ignoreCase = true)) {
+            controller?.transportControls?.skipToNext()
+        } else if (action.equals(ACTION_STOP, ignoreCase = true)) {
+            controller?.transportControls?.stop()
+        } else if (action.equals(ACTION_OPEN_IN_BROWSER, ignoreCase = true)) {
+            wantsPlaybackPosition = true
+            drawer?.getPlaybackPosition()
+        }
+    }
+
+    override fun onPlaybackPosition(seconds: Int) {
+        if (wantsPlaybackPosition) {
+            wantsPlaybackPosition = false
+            var id = if (videoId != null) videoId else ""
+            val i = Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://youtube.com/watch?v=${id}&t=${seconds}"))
+            i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(i)
+        }
     }
 
 
-    fun loadWebpage(): String {
-        val stream = this.assets.open(webAsset)
-        val size = stream.available()
-        val buffer = ByteArray(size)
-        stream.read(buffer)
-        stream.close()
-        return buffer.toString(Charset.defaultCharset())
+    private fun buildNotification(action: Notification.Action) {
+        if (videoId == null) return
+
+        val style = Notification.MediaStyle().setMediaSession(session?.sessionToken)
+
+        val browserIntent = Intent(applicationContext, NotiRunner::class.java)
+        browserIntent.action = ACTION_OPEN_IN_BROWSER
+        val contentIntent = PendingIntent.getService(applicationContext, 1, browserIntent, 0)
+
+        val cancelIntent = Intent(applicationContext, NotiRunner::class.java)
+        browserIntent.action = ACTION_STOP
+        val cancelPendingIntent = PendingIntent.getService(applicationContext, 1, cancelIntent, 0)
+
+//        val cancelIntent = PendingIntent.getService(applicationContext, 1, intent, 0)
+        val builder = Notification.Builder(this)
+                .setSmallIcon(R.drawable.abc_ic_clear_material)
+                .setContentTitle(videoId)
+                .setContentText("")
+                .setDeleteIntent(cancelPendingIntent)
+                .setStyle(style)
+                .setOngoing(true)
+                .setContentIntent(contentIntent)
+
+        // pending implicit intent to view url
+
+
+//        val pending = PendingIntent.getActivity(this, 0, resultIntent, )
+//        builder.setContentIntent(pending)
+
+
+        builder.addAction(generateAction(android.R.drawable.ic_media_previous, "Previous", ACTION_PREVIOUS))
+        builder.addAction(generateAction(android.R.drawable.ic_media_rew, "Rewind", ACTION_REWIND))
+        builder.addAction(action)
+        builder.addAction(generateAction(android.R.drawable.ic_media_ff, "Fast Foward", ACTION_FAST_FORWARD))
+        builder.addAction(generateAction(android.R.drawable.ic_media_next, "Next", ACTION_NEXT))
+        style.setShowActionsInCompactView(2)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+//        notificationManager.notify(1, builder.build())
+        startForeground(1, builder.build())
     }
+
+    fun getNotiRunnable(): NotiRunnable? = this.drawer
+
 
     override fun onBind(intent: Intent): IBinder? {
         return null
@@ -127,35 +175,94 @@ class NotiRunner : Service(), NotiRunnable {
         Log.i(TAG, "onStart")
     }
 
-    override fun removeEventObserver(o: NotiObserver) {
-        observers.remove(o)
+    private fun generateAction(icon: Int, title: String, intentAction: String): Notification.Action {
+        val intent = Intent(applicationContext, NotiRunner::class.java)
+        intent.action = intentAction
+        val pendingIntent = PendingIntent.getService(applicationContext, 1, intent, 0)
+        return Notification.Action.Builder(icon, title, pendingIntent).build()
     }
 
-    override fun addEventObserver(o: NotiObserver) {
-        observers.add(o)
+    fun initMediaSession() {
+        this.session = MediaSession(applicationContext, "NotiPlay Session")
+        this.controller = MediaController(applicationContext, session?.sessionToken)
+
+        session?.setCallback(object : MediaSession.Callback() {
+            override fun onPlay() {
+                super.onPlay()
+                drawer?.playerPlay()
+                Log.e("MediaPlayerService", "onPlay")
+                buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
+            }
+
+            override fun onPause() {
+                super.onPause()
+                drawer?.playerPause()
+                Log.e("MediaPlayerService", "onPause")
+                buildNotification(generateAction(android.R.drawable.ic_media_play, "Play", ACTION_PLAY))
+            }
+
+            override fun onSkipToNext() {
+                super.onSkipToNext()
+                Log.e("MediaPlayerService", "onSkipToNext")
+                //Change media here
+                buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
+            }
+
+            override fun onSkipToPrevious() {
+                super.onSkipToPrevious()
+                Log.e("MediaPlayerService", "onSkipToPrevious")
+                drawer?.seekToPosition(0)
+                //Change media here
+                buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
+            }
+
+            override fun onFastForward() {
+                super.onFastForward()
+                drawer?.seekForward()
+                Log.e("MediaPlayerService", "onFastForward")
+                //Manipulate current media here
+            }
+
+            override fun onRewind() {
+                super.onRewind()
+                drawer?.seekBackward()
+                Log.e("MediaPlayerService", "onRewind")
+                //Manipulate current media here
+            }
+
+            override fun onStop() {
+                super.onStop()
+                drawer?.playerStop()
+                Log.e("MediaPlayerService", "onStop")
+                //Stop media player here
+            }
+
+        })
     }
 
-    override fun playVideoById(videoId: String, seekPosition: Int) {
-        execJs("playWithVideoId(\"${videoId}\");")
+    override fun onPlayerReady() {
+        println("ready")
     }
 
-    override fun playerPause() = execJs("playerPause();")
+    override fun onPlayerStateChange(state: NotiObserver.PlayerState) {
+        println(state)
 
-    override fun playerPlay() = execJs("playerPlay();")
+//        when(state) {
+////            NotiObserver.PlayerState.PLAYING -> buildNotification(generateAction(android.R.drawable.ic_media_play, "Pause", ACTION_PAUSE))
+//
+//        }
+    }
 
-    override fun playerStop() = execJs("playerStop();")
+    override fun onPlaybackQualityChange(quality: String) {
+        println(quality)
+    }
 
-    override fun seekForward(seek: Int) = execJs("seekForward(${seek});")
+    override fun onPlaybackRateChange(rate: Int) {
+        println(rate)
 
-    override fun seekBackward(seek: Int) = execJs("seekBackward(${seek});")
+    }
 
-    override fun seekToPosition(seconds: Int) = execJs("seekTo(${seconds});")
-
-    fun execJs(command: String) {
-        handler.post {
-            System.out.println("playing with id")
-            webView!!.loadUrl("javascript:${command}")
-        }
-
+    override fun onErrorCode(code: NotiObserver.ErrorCode) {
+        println("error: " + code)
     }
 }

@@ -19,4 +19,5 @@ interface NotiRunnable {
 
     fun addEventObserver(o: NotiObserver)
     fun removeEventObserver(o: NotiObserver)
+    fun getPlaybackPosition()
 }

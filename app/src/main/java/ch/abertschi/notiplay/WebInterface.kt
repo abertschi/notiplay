@@ -34,4 +34,9 @@ class WebInterface(val context: Context, var observers: List<NotiObserver>) {
         val eCode = NotiObserver.ErrorCode.toErrorEnum(code)
         observers.forEach { it.onErrorCode(eCode) }
     }
+
+    @JavascriptInterface
+    fun onPlaybackPosition(seconds: Int) {
+        observers.forEach { it.onPlaybackPosition(seconds) }
+    }
 }

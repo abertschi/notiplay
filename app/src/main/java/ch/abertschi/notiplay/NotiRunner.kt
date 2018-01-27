@@ -1,18 +1,20 @@
 package ch.abertschi.notiplay
 
-import android.app.Notification
-import android.app.NotificationManager
+
 import android.app.PendingIntent
 import android.app.Service
 import android.content.ContentValues.TAG
-import android.content.Context
 import android.content.Intent
-import android.media.session.MediaController
-import android.media.session.MediaSession
+import android.graphics.Color
 import android.net.Uri
 import android.os.IBinder
+import android.support.v4.app.NotificationCompat
+import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
+import android.widget.Toast
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.concurrent.timerTask
 
 
@@ -26,13 +28,17 @@ import kotlin.concurrent.timerTask
 
 class NotiRunner : Service(), NotiObserver {
 
-
     private var drawer: WebViewDrawer? = null
     private var videoId: String? = null
-    private var controller: MediaController? = null
-    private var session: MediaSession? = null
+    private var controller: MediaControllerCompat? = null
+    private var session: MediaSessionCompat? = null
     private var wantsPlaybackPosition = false
-    private var notificationBuilder: Notification.Builder? = null
+    private var notificationId: Int = 1
+    private var hasError: Boolean = false
+    private var notificationStyle: android.support.v4.media.app.NotificationCompat.MediaStyle? = null
+
+    private var videoTitle: String = ""
+    private var playbackState: NotiObserver.PlayerState = NotiObserver.PlayerState.UNSTARTED
 
     companion object {
         val INTENT_VIDEO_ID: String = "video_id"
@@ -55,25 +61,36 @@ class NotiRunner : Service(), NotiObserver {
 
         videoId?.run {
             this@NotiRunner.videoId = videoId
+            this@NotiRunner.videoTitle = "video " + videoId
+
             if (drawer == null) {
                 drawer = WebViewDrawer(this@NotiRunner)
                 drawer?.addEventObserver(this@NotiRunner)
                 drawer?.setOnCloseCallback {
                     stopSelf()
                 }
+                hasError = false
+                notificationStyle = null
+                notificationBuilder = null
+                Toast.makeText(baseContext, "Loading Youtube video ...", Toast.LENGTH_LONG).show()
                 drawer?.loadWebView()
 
             }
-            buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
-
             val timer = Timer()
-            timer.schedule(timerTask { drawer?.playVideoById(videoId!!) }, 3000)
+            timer.schedule(timerTask {
+                drawer?.playVideoById(videoId!!)
+                buildNotification(generateAction(R.mipmap.ic_play_arrow_white_48dp, "Play", ACTION_PLAY),
+                        "loading ...")
+
+                drawer?.getVideoData()
+
+            }, 3000)
             initMediaSession()
 
         }
 
         if (intent == null) {
-            return super.onStartCommand(Intent(), flags, startId)
+            controller?.transportControls?.stop()
         }
         return START_NOT_STICKY
     }
@@ -116,16 +133,17 @@ class NotiRunner : Service(), NotiObserver {
             val i = Intent(Intent.ACTION_VIEW,
                     Uri.parse("https://youtube.com/watch?v=${id}&t=${seconds}"))
             i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+
+            controller?.transportControls?.pause()
+
             startActivity(i)
         }
     }
 
+    private var notificationBuilder: NotificationCompat.Builder? = null
 
-    private fun buildNotification(action: Notification.Action) {
-        if (videoId == null) return
 
-        val style = Notification.MediaStyle().setMediaSession(session?.sessionToken)
-
+    private fun getNotificationBuilder(): NotificationCompat.Builder {
         val browserIntent = Intent(applicationContext, NotiRunner::class.java)
         browserIntent.action = ACTION_OPEN_IN_BROWSER
         val contentIntent = PendingIntent.getService(applicationContext, 1, browserIntent, 0)
@@ -134,33 +152,43 @@ class NotiRunner : Service(), NotiObserver {
         browserIntent.action = ACTION_STOP
         val cancelPendingIntent = PendingIntent.getService(applicationContext, 1, cancelIntent, 0)
 
-//        val cancelIntent = PendingIntent.getService(applicationContext, 1, intent, 0)
-        val builder = Notification.Builder(this)
-                .setSmallIcon(R.drawable.abc_ic_clear_material)
-                .setContentTitle(videoId)
-                .setContentText("")
-                .setDeleteIntent(cancelPendingIntent)
-                .setStyle(style)
-                .setOngoing(true)
-                .setContentIntent(contentIntent)
-
-        // pending implicit intent to view url
-
-
-//        val pending = PendingIntent.getActivity(this, 0, resultIntent, )
-//        builder.setContentIntent(pending)
-
-
-        builder.addAction(generateAction(android.R.drawable.ic_media_previous, "Previous", ACTION_PREVIOUS))
-        builder.addAction(generateAction(android.R.drawable.ic_media_rew, "Rewind", ACTION_REWIND))
-        builder.addAction(action)
-        builder.addAction(generateAction(android.R.drawable.ic_media_ff, "Fast Foward", ACTION_FAST_FORWARD))
-        builder.addAction(generateAction(android.R.drawable.ic_media_next, "Next", ACTION_NEXT))
+        val style = android.support.v4.media.app.NotificationCompat.MediaStyle()
+        style.setMediaSession(session?.sessionToken)
         style.setShowActionsInCompactView(2)
+                .setShowCancelButton(true)
+                .setCancelButtonIntent(cancelPendingIntent)
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-//        notificationManager.notify(1, builder.build())
-        startForeground(1, builder.build())
+        this.notificationStyle = style
+
+        return NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.abc_ic_clear_material)
+                .setStyle(style)
+                .setContentTitle(this.videoTitle)
+                .setContentText("")
+                .setColor(Color.BLACK)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(false)
+                .setAutoCancel(false)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDeleteIntent(cancelPendingIntent)
+                .setContentIntent(contentIntent)
+//                .setLargeIcon(Bitmap.createBitmap()
+
+
+    }
+
+    private fun buildNotification(action: NotificationCompat.Action, subTitle: String = "") {
+        if (videoId == null) return
+
+        this.notificationBuilder = getNotificationBuilder()
+
+        notificationBuilder?.addAction(generateAction(R.mipmap.ic_skip_previous_white_48dp, "Previous", ACTION_PREVIOUS))
+        notificationBuilder?.addAction(generateAction(R.mipmap.ic_fast_rewind_white_48dp, "Rewind", ACTION_REWIND))
+        notificationBuilder?.addAction(action)
+        notificationBuilder?.addAction(generateAction(R.mipmap.ic_fast_forward_white_48dp, "Fast Foward", ACTION_FAST_FORWARD))
+        notificationBuilder?.addAction(generateAction(R.mipmap.ic_skip_next_white_48dp, "Next", ACTION_NEXT))
+
+        startForeground(notificationId, notificationBuilder?.build())
     }
 
     fun getNotiRunnable(): NotiRunnable? = this.drawer
@@ -175,48 +203,54 @@ class NotiRunner : Service(), NotiObserver {
         Log.i(TAG, "onStart")
     }
 
-    private fun generateAction(icon: Int, title: String, intentAction: String): Notification.Action {
+    private fun generateAction(icon: Int, title: String, intentAction: String): NotificationCompat.Action {
         val intent = Intent(applicationContext, NotiRunner::class.java)
         intent.action = intentAction
         val pendingIntent = PendingIntent.getService(applicationContext, 1, intent, 0)
-        return Notification.Action.Builder(icon, title, pendingIntent).build()
+        return NotificationCompat.Action.Builder(icon, title, pendingIntent).build()
     }
 
-    fun initMediaSession() {
-        this.session = MediaSession(applicationContext, "NotiPlay Session")
-        this.controller = MediaController(applicationContext, session?.sessionToken)
+    private fun initMediaSession() {
+        this.session = MediaSessionCompat(applicationContext, "NotiPlay Session")
+        this.controller = MediaControllerCompat(applicationContext, session?.sessionToken!!)
 
-        session?.setCallback(object : MediaSession.Callback() {
+        session?.setCallback(object : MediaSessionCompat.Callback() {
             override fun onPlay() {
+//                if (hasError) return
                 super.onPlay()
                 drawer?.playerPlay()
                 Log.e("MediaPlayerService", "onPlay")
-                buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
+                buildNotification(generateAction(R.mipmap.ic_pause_white_48dp, "Pause", ACTION_PAUSE))
             }
 
             override fun onPause() {
+//                if (hasError) return
+                stopForeground(false)
                 super.onPause()
                 drawer?.playerPause()
                 Log.e("MediaPlayerService", "onPause")
-                buildNotification(generateAction(android.R.drawable.ic_media_play, "Play", ACTION_PLAY))
+                println("CAN PLAY")
+                buildNotification(generateAction(R.mipmap.ic_play_arrow_white_48dp, "Play", ACTION_PLAY))
+                stopForeground(false)
             }
 
             override fun onSkipToNext() {
+//                if (hasError) return
                 super.onSkipToNext()
                 Log.e("MediaPlayerService", "onSkipToNext")
-                //Change media here
-                buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
+                drawer?.playerNextVideo()
             }
 
             override fun onSkipToPrevious() {
+//                if (hasError) return
                 super.onSkipToPrevious()
                 Log.e("MediaPlayerService", "onSkipToPrevious")
-                drawer?.seekToPosition(0)
-                //Change media here
-                buildNotification(generateAction(android.R.drawable.ic_media_pause, "Pause", ACTION_PAUSE))
+//                drawer?.seekToPosition(0)
+                drawer?.playerPreviousVideo()
             }
 
             override fun onFastForward() {
+//                if (hasError) return
                 super.onFastForward()
                 drawer?.seekForward()
                 Log.e("MediaPlayerService", "onFastForward")
@@ -224,6 +258,7 @@ class NotiRunner : Service(), NotiObserver {
             }
 
             override fun onRewind() {
+//                if (hasError) return
                 super.onRewind()
                 drawer?.seekBackward()
                 Log.e("MediaPlayerService", "onRewind")
@@ -231,6 +266,7 @@ class NotiRunner : Service(), NotiObserver {
             }
 
             override fun onStop() {
+//                if (hasError) return
                 super.onStop()
                 drawer?.playerStop()
                 Log.e("MediaPlayerService", "onStop")
@@ -246,11 +282,28 @@ class NotiRunner : Service(), NotiObserver {
 
     override fun onPlayerStateChange(state: NotiObserver.PlayerState) {
         println(state)
+        if (notificationBuilder == null) return
 
-//        when(state) {
-////            NotiObserver.PlayerState.PLAYING -> buildNotification(generateAction(android.R.drawable.ic_media_play, "Pause", ACTION_PAUSE))
-//
-//        }
+        when (state) {
+            NotiObserver.PlayerState.PLAYING -> {
+                buildNotification(generateAction(R.mipmap.ic_pause_white_48dp, "Pause", ACTION_PAUSE))
+                setSubtitle("playing")
+                playbackState = NotiObserver.PlayerState.PLAYING
+            }
+            NotiObserver.PlayerState.BUFFERING -> {
+                setSubtitle("buffering")
+                playbackState = NotiObserver.PlayerState.BUFFERING
+            }
+            NotiObserver.PlayerState.UNSTARTED -> {
+                setSubtitle("loading")
+                playbackState = NotiObserver.PlayerState.UNSTARTED
+            }
+            NotiObserver.PlayerState.PAUSED -> {
+                setSubtitle("paused")
+                playbackState = NotiObserver.PlayerState.PAUSED
+                stopForeground(false)
+            }
+        }
     }
 
     override fun onPlaybackQualityChange(quality: String) {
@@ -264,5 +317,72 @@ class NotiRunner : Service(), NotiObserver {
 
     override fun onErrorCode(code: NotiObserver.ErrorCode) {
         println("error: " + code)
+        hasError = true
+        notificationBuilder?.run {
+            this.setContentText("error " + code.code + " - cannot play video")
+            this.mActions = ArrayList()
+            if (notificationStyle != null) {
+                notificationStyle?.setShowActionsInCompactView()
+            }
+            this.setStyle(notificationStyle)
+            startForeground(notificationId, this.build())
+            stopForeground(false)
+
+        }
+    }
+
+    private fun setSubtitle(msg: String) {
+        if (hasError) return
+
+        notificationBuilder?.setContentText(msg)
+        startForeground(notificationId, notificationBuilder?.build())
+    }
+
+    private fun setTitle(msg: String) {
+        if (hasError) return
+        notificationBuilder?.setContentTitle(msg)
+        startForeground(notificationId, notificationBuilder?.build())
+    }
+
+    private fun setThumbnail(url: String) {
+
+    }
+
+    private var updatedOnPause: Boolean = false
+    override fun onPlaybackPositionUpdate(seconds: Int) {
+        val hours: Int = seconds / 3600
+        val mins: Int = (seconds - (hours * 60)) / 60
+        val seconds: Int = seconds - mins * 60
+
+        var time = ""
+        if (hours > 0) {
+            time = String.format("$02d:%02d:%02d", hours, mins, seconds)
+        } else {
+            time = String.format("%02d:%02d", mins, seconds)
+        }
+
+        if (playbackState == NotiObserver.PlayerState.PLAYING) {
+            setSubtitle("playing " + time)
+            updatedOnPause = false
+        }
+
+        if (playbackState == NotiObserver.PlayerState.PAUSED) {
+            if (updatedOnPause) return
+            updatedOnPause = true
+            setSubtitle("paused " + time)
+
+            stopForeground(false)
+        }
+    }
+
+    override fun onVideoData(title: String, thumbailUrl: String) {
+        println(title + thumbailUrl)
+        this.videoTitle = title
+
+        if (notificationBuilder != null) {
+            notificationBuilder?.setContentTitle(this.videoTitle)
+            startForeground(notificationId, notificationBuilder?.build())
+
+        }
     }
 }

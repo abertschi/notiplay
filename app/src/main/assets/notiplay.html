@@ -1,6 +1,13 @@
 <html>
   <!-- test with this video -->
   <!-- src="https://www.youtube.com/embed/82TD06U4ppA?enablejsapi=1" -->
+
+  <head>
+    <script
+      src="https://code.jquery.com/jquery-3.3.1.min.js"
+      integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+      crossorigin="anonymous"></script>
+  </head>
   <body>
     <iframe id="notiplay-iframe"
             width="640" height="360"
@@ -16,12 +23,20 @@
 
      var firstScriptTag = document.getElementsByTagName('script')[0];
      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
+     
+     var ytk = "AIzaSyCrT-HRrkCwFSwdg3ETJbCMB-GffhNVJfM";
+     var videoId = '5Svp9E5orvw';
      var player;
      var playerStats = {
        ready: false,
        readyCallables: []
      };
+     
+     try {
+       if (NotiPlay) {}
+     } catch(e) {
+       NotiPlay = false;
+     }
      
      function onYouTubeIframeAPIReady() {
        player = new YT.Player('notiplay-iframe', {
@@ -46,6 +61,15 @@
        if (NotiPlay) {
          NotiPlay.onPlayerReady();
        }
+       
+       setInterval(function(){
+         var t = player.getCurrentTime();
+         t = Math.round(t);
+         if (NotiPlay) {
+           NotiPlay.onPlaybackPositionUpdate(t);
+         }
+       }, 2000);
+       
      }
 
      function onPlayerStateChange(event) {
@@ -84,6 +108,8 @@
      }
 
      function playWithVideoId(videoId) {
+       window.videoId = videoId;
+       
        _runWhenPlayerReady(function() {
          player.loadVideoById(videoId);
        });
@@ -147,6 +173,37 @@
        } catch(e) {};
      }
 
+     function playerNextVideo() {
+       try{
+         player.nextVideo();
+       } catch(e) {};
+     }
+
+     function playerPreviousVideo() {
+       try{
+         player.previousVideo();
+       } catch(e) {};
+     }
+
+     function _fetchVideoData(callback) {
+       $.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" + window.videoId + "&key=" + ytk, function(data) {
+         callback(data);
+       });
+     }
+
+     function _getRelatedVideo(callback) {
+     }
+
+     function getVideoData() {
+       _fetchVideoData(function(data) {
+         var snippet = data.items[0].snippet;
+         var title = snippet.title;
+         var thumbnail = snippet.thumbnails.high.url;
+
+         NotiPlay.onVideoData(title, thumbnail);
+       });
+     }
+     
      function getPlaybackPosition() {
        try {
          var t = player.getCurrentTime();

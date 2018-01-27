@@ -13,6 +13,9 @@ interface NotiRunnable {
 
     fun playerStop()
 
+    fun playerNextVideo()
+    fun playerPreviousVideo()
+
     fun seekForward(seek: Int = 30)
     fun seekBackward(seek: Int = 30)
     fun seekToPosition(seconds: Int)
@@ -20,4 +23,7 @@ interface NotiRunnable {
     fun addEventObserver(o: NotiObserver)
     fun removeEventObserver(o: NotiObserver)
     fun getPlaybackPosition()
+
+    fun toggleWebview()
+    fun getVideoData()
 }

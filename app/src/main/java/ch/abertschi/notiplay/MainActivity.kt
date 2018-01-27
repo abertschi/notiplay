@@ -23,19 +23,19 @@ class MainActivity : AppCompatActivity() {
         val url = intent.getStringExtra(Intent.EXTRA_TEXT)
         println(url)
         val g = Regex("[?&]v=([0-9a-zA-Z-_]*)").find(url)
+        val g2 = Regex("youtu.be/([0-9a-zA-Z-_]*)").find(url) // youtu.be links
 
         if (g?.groups?.size ?: 0 > 1) {
             val id = g!!.groups[1]!!.value
             println(id)
             return id
         }
-
+        if (g2?.groups?.size ?: 0 > 1) {
+            val id = g2!!.groups[1]!!.value
+            println(id)
+            return id
+        }
         return null
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        println("ONNEWINTENT")
-        super.onNewIntent(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,20 +50,13 @@ class MainActivity : AppCompatActivity() {
 
             if (videoId == null) {
                 Toast.makeText(this, "No video found :/", Toast.LENGTH_SHORT).show()
-                return
             }
             notiIntent.putExtra(NotiRunner.INTENT_VIDEO_ID, videoId)
             notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             println(videoId)
             startService(notiIntent)
-            ActivityCompat.finishAffinity(this);
-
-//            val i = Intent(Intent.ACTION_MAIN)
-//            i.addCategory(Intent.CATEGORY_HOME)
-//            startActivity(i)
-//            finish()
-            //finishActivity(0)
-//            finish()
+            ActivityCompat.finishAffinity(this)
+            return
 
         } else {
             setContentView(R.layout.activity_main)

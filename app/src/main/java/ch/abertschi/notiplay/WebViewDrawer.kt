@@ -22,6 +22,9 @@ import java.util.*
 
 class WebViewDrawer(val context: Context) : NotiRunnable {
 
+    override fun toggleWebview() {
+    }
+
     private val handler = Handler(Looper.getMainLooper())
     private var webView: WebView? = null
     private val webAsset: String = "notiplay.html"
@@ -172,9 +175,16 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
 
     override fun getPlaybackPosition() = execJs("getPlaybackPosition();")
 
+    override fun playerPreviousVideo() = execJs("playerNextVideo();")
+
+
+    override fun playerNextVideo() = execJs("playerPreviousVideo();")
+    override fun getVideoData() = execJs("getVideoData();")
+
+
     fun execJs(command: String) {
         handler.post {
-            System.out.println("playing with id")
+            println("javascript:${command}")
             webView!!.loadUrl("javascript:${command}")
         }
 

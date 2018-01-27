@@ -39,4 +39,14 @@ class WebInterface(val context: Context, var observers: List<NotiObserver>) {
     fun onPlaybackPosition(seconds: Int) {
         observers.forEach { it.onPlaybackPosition(seconds) }
     }
+
+    @JavascriptInterface
+    fun onPlaybackPositionUpdate(seconds: Int) {
+        observers.forEach { it.onPlaybackPositionUpdate(seconds) }
+    }
+
+    @JavascriptInterface
+    fun onVideoData(title: String, thumbnail: String) {
+        observers.forEach { it.onVideoData(title, thumbnail) }
+    }
 }

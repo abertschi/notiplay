@@ -17,26 +17,5 @@
         app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="5dp"/>
 
-    <TextView
-        android:id="@+id/title"
-
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Notiplay"
-
-        tools:layout_editor_absoluteX="75dp"
-        tools:layout_editor_absoluteY="353dp"/>
-
-    <TextView
-        android:id="@+id/subtitle"
-        android:layout_marginTop="10dp"
-        android:layout_below="@id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="play YouTube in background"
-        tools:layout_editor_absoluteX="75dp"
-        tools:layout_editor_absoluteY="353dp"/>
-
-
 
 </RelativeLayout>

@@ -14,7 +14,6 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import android.widget.Toast
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.concurrent.timerTask
 
 
@@ -236,41 +235,36 @@ class NotiRunner : Service(), NotiObserver {
 
             override fun onSkipToNext() {
 //                if (hasError) return
+                hasError = false
                 super.onSkipToNext()
                 Log.e("MediaPlayerService", "onSkipToNext")
                 drawer?.playerNextVideo()
             }
 
             override fun onSkipToPrevious() {
-//                if (hasError) return
                 super.onSkipToPrevious()
+                hasError = false
                 Log.e("MediaPlayerService", "onSkipToPrevious")
-//                drawer?.seekToPosition(0)
                 drawer?.playerPreviousVideo()
             }
 
             override fun onFastForward() {
-//                if (hasError) return
                 super.onFastForward()
                 drawer?.seekForward()
                 Log.e("MediaPlayerService", "onFastForward")
-                //Manipulate current media here
             }
 
             override fun onRewind() {
-//                if (hasError) return
                 super.onRewind()
                 drawer?.seekBackward()
                 Log.e("MediaPlayerService", "onRewind")
-                //Manipulate current media here
+
             }
 
             override fun onStop() {
-//                if (hasError) return
                 super.onStop()
                 drawer?.playerStop()
                 Log.e("MediaPlayerService", "onStop")
-                //Stop media player here
             }
 
         })
@@ -320,10 +314,10 @@ class NotiRunner : Service(), NotiObserver {
         hasError = true
         notificationBuilder?.run {
             this.setContentText("error " + code.code + " - cannot play video")
-            this.mActions = ArrayList()
-            if (notificationStyle != null) {
-                notificationStyle?.setShowActionsInCompactView()
-            }
+//            this.mActions = ArrayList()
+//            if (notificationStyle != null) {
+//                notificationStyle?.setShowActionsInCompactView()
+//            }
             this.setStyle(notificationStyle)
             startForeground(notificationId, this.build())
             stopForeground(false)
@@ -382,7 +376,14 @@ class NotiRunner : Service(), NotiObserver {
         if (notificationBuilder != null) {
             notificationBuilder?.setContentTitle(this.videoTitle)
             startForeground(notificationId, notificationBuilder?.build())
-
+        } else {
+            val timer = Timer()
+            timer.schedule(timerTask {
+                if (notificationBuilder != null) {
+                    notificationBuilder?.setContentTitle(videoTitle)
+                    startForeground(notificationId, notificationBuilder?.build())
+                }
+            }, 3000)
         }
     }
 }

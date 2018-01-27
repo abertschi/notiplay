@@ -31,6 +31,13 @@
        ready: false,
        readyCallables: []
      };
+
+     var notiStorage = {
+       videoId:  '5Svp9E5orvw',
+       playHistory: [videoId],
+       playIndex: 0,
+       isPlaybackInHistory: false,
+     };
      
      try {
        if (NotiPlay) {}
@@ -73,7 +80,6 @@
      }
 
      function onPlayerStateChange(event) {
-       
        if (NotiPlay) {
          NotiPlay.onPlayerStateChange(event.data);
        }
@@ -99,6 +105,7 @@
        }
      }
 
+     
      function _runWhenPlayerReady(callable) {
        if (!playerStats.ready) {
          playerStats.readyCallables.push(callable);
@@ -107,11 +114,57 @@
        };
      }
 
+     
+     function _fetchVideoData(callback) {
+       $.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" +
+             window.videoId + "&key=" + ytk, function(data) {
+               if (callback) {
+                 callback(data);
+               } else {
+                 console.log(data);
+               }
+             });
+     }
+
+     function _getRelatedVideo(callback) {
+       var id = window.videoId;
+       var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=" +
+                 id + "&type=video&key=" + ytk;
+
+       $.get(url, function(data) {
+         var relatedVideos = [];
+
+         if (data && data.items) {
+           data.items.forEach(function(item) {
+             var vId = item.id.videoId;
+             var snippet = item.snippet;
+
+             relatedVideos.push({
+               id: vId,
+               snippet: snippet
+             });
+           });
+         }
+         if (callback) {
+           callback(relatedVideos);
+         } else {
+           console.log(data);
+           console.log(relatedVideos);
+         }
+       });
+     }
+
      function playWithVideoId(videoId) {
        window.videoId = videoId;
+       notiStorage.videoId = videoId;
+       if (!notiStorage.isPlaybackInHistory) {
+         notiStorage.playIndex = notiStorage.playHistory.length - 1;
+         notiStorage.playHistory.push(videoId);
+       }
        
        _runWhenPlayerReady(function() {
          player.loadVideoById(videoId);
+         getVideoData();
        });
      }
 
@@ -174,33 +227,51 @@
      }
 
      function playerNextVideo() {
-       try{
-         player.nextVideo();
-       } catch(e) {};
+       if (notiStorage.isPlaybackInHistory
+           && notiStorage.playIndex < notiStorage.playHistory.length - 1) {
+         
+         notiStorage.playIndex += 1;
+         var id = notiStorage.playHistory[notiStorage.playIndex];
+         playWithVideoId(id);
+       } else {
+         
+         notiStorage.isPlaybackInHistory = false;
+         try{
+           _getRelatedVideo(function(data) {
+             if (data.length < 1) return;
+             var video;
+             data.forEach(function(d) {
+               if (!video && notiStorage.playHistory.indexOf(d.id) == -1) {
+                 video = d;
+               }
+             });
+             if (!video) video = data[0];
+             playWithVideoId(video.id);
+           });
+         } catch(e) {};
+       }
      }
 
      function playerPreviousVideo() {
-       try{
-         player.previousVideo();
-       } catch(e) {};
-     }
-
-     function _fetchVideoData(callback) {
-       $.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" + window.videoId + "&key=" + ytk, function(data) {
-         callback(data);
-       });
-     }
-
-     function _getRelatedVideo(callback) {
+       notiStorage.isPlaybackInHistory = true;
+       if (notiStorage.playIndex == 0) {
+         console.log("cant go further back, beginning reached");
+         return;
+       }
+       notiStorage.playIndex = notiStorage.playIndex - 1;
+       var id = notiStorage.playHistory[notiStorage.playIndex];
+       playWithVideoId(id);
      }
 
      function getVideoData() {
        _fetchVideoData(function(data) {
          var snippet = data.items[0].snippet;
          var title = snippet.title;
-         var thumbnail = snippet.thumbnails.high.url;
+         var thumbnail = snippet.thumbnails.maxres.url;
 
-         NotiPlay.onVideoData(title, thumbnail);
+         if (NotiPlay) {
+           NotiPlay.onVideoData(title, thumbnail);
+         }
        });
      }
      
@@ -213,7 +284,8 @@
          }
        }catch(e) {}
      }
-     
+
+
     </script>
   </body>
 </html>

@@ -145,7 +145,9 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
         val buffer = ByteArray(size)
         stream.read(buffer)
         stream.close()
-        return buffer.toString(Charset.defaultCharset())
+        val str =  buffer.toString(Charset.defaultCharset())
+        println(str)
+        return str
     }
 
 
@@ -175,10 +177,10 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
 
     override fun getPlaybackPosition() = execJs("getPlaybackPosition();")
 
-    override fun playerPreviousVideo() = execJs("playerNextVideo();")
+    override fun playerPreviousVideo() = execJs("playerPreviousVideo();")
 
 
-    override fun playerNextVideo() = execJs("playerPreviousVideo();")
+    override fun playerNextVideo() = execJs("playerNextVideo();")
     override fun getVideoData() = execJs("getVideoData();")
 
 

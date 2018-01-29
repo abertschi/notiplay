@@ -25,5 +25,8 @@ interface NotiRunnable {
     fun getPlaybackPosition()
 
     fun toggleWebview()
+    fun setLoopMode(loopWhenEnd: Boolean)
     fun getVideoData()
+
+    fun setFullscreen(state: Boolean)
 }

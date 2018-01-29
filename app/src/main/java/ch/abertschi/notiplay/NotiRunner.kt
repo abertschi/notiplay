@@ -369,7 +369,8 @@ class NotiRunner : Service(), NotiObserver {
         }
     }
 
-    override fun onVideoData(title: String, thumbailUrl: String) {
+    override fun onVideoData(title: String, thumbailUrl: String,
+                             duration: Int, loop: Boolean, videoId: String) {
         println(title + thumbailUrl)
         this.videoTitle = title
 

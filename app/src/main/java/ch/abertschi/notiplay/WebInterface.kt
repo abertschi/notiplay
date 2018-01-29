@@ -46,7 +46,13 @@ class WebInterface(val context: Context, var observers: List<NotiObserver>) {
     }
 
     @JavascriptInterface
-    fun onVideoData(title: String, thumbnail: String) {
-        observers.forEach { it.onVideoData(title, thumbnail) }
+    fun onVideoData(title: String, thumbnail: String, duration: Int,
+                    isLoop: Boolean, videoId: String) {
+        observers.forEach { it.onVideoData(title, thumbnail, duration, isLoop, videoId) }
+    }
+
+    @JavascriptInterface
+    fun onPlaybackPositionStatus(status: String) {
+//        observers.forEach { it.onVideoData(title, thumbnail) }
     }
 }

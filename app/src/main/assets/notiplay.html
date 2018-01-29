@@ -1,22 +1,27 @@
 <html>
-  <!-- test with this video -->
-  <!-- src="https://www.youtube.com/embed/82TD06U4ppA?enablejsapi=1" -->
 
   <head>
     <script
-      src="https://code.jquery.com/jquery-3.3.1.min.js"
+      src="http://code.jquery.com/jquery-3.3.1.min.js"
       integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
       crossorigin="anonymous"></script>
+
+    <style>
+     body {
+       background-color: black;
+     }
+    </style>
   </head>
   <body>
     <iframe id="notiplay-iframe"
-            width="640" height="360"
-            src="https://www.youtube.com/embed/5Svp9E5orvw?enablejsapi=1"
-            enablejsapi="1"
+            width="640" height="480"
+            src="https://www.youtube.com/embed/5Svp9E5orvw?enablejsapi=1&controls=1&fs=0&rel=0"
+            enablejsapi="1",
             frameborder="0">
     </iframe>
 
     <script type="text/javascript">
+
      var tag = document.createElement('script');
      tag.id = 'iframe-demo';
      tag.src = 'https://www.youtube.com/iframe_api';
@@ -25,24 +30,27 @@
      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
      
      var ytk = "AIzaSyCrT-HRrkCwFSwdg3ETJbCMB-GffhNVJfM";
-     var videoId = '5Svp9E5orvw';
+     
      var player;
      var playerStats = {
        ready: false,
        readyCallables: []
      };
 
+
      var notiStorage = {
-       videoId:  '5Svp9E5orvw',
-       playHistory: [videoId],
+       videoId: '5Svp9E5orvw',
+       playHistory: ['5Svp9E5orvw'],
        playIndex: 0,
        isPlaybackInHistory: false,
+       isLoopVideo: false,
+       isFullscreen: false
      };
      
      try {
        if (NotiPlay) {}
      } catch(e) {
-       NotiPlay = false;
+       window.NotiPlay = false;
      }
      
      function onYouTubeIframeAPIReady() {
@@ -71,12 +79,26 @@
        
        setInterval(function(){
          var t = player.getCurrentTime();
+         var totalTime = Math.round(player.getDuration());
          t = Math.round(t);
+         
          if (NotiPlay) {
            NotiPlay.onPlaybackPositionUpdate(t);
          }
-       }, 2000);
-       
+
+         if (t >= totalTime && totalTime != 0) {
+           console.log("end-of-video reached");
+
+           if (notiStorage.isLoopVideo) {
+             console.log("start-of-video");
+             seekTo(0);
+             playerPlay();
+           } else {
+             console.log("jump to next video");
+             playerNextVideo();
+           }
+         }
+       }, 1000);
      }
 
      function onPlayerStateChange(event) {
@@ -105,57 +127,7 @@
        }
      }
 
-     
-     function _runWhenPlayerReady(callable) {
-       if (!playerStats.ready) {
-         playerStats.readyCallables.push(callable);
-       } else {
-         callable();
-       };
-     }
-
-     
-     function _fetchVideoData(callback) {
-       $.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" +
-             window.videoId + "&key=" + ytk, function(data) {
-               if (callback) {
-                 callback(data);
-               } else {
-                 console.log(data);
-               }
-             });
-     }
-
-     function _getRelatedVideo(callback) {
-       var id = window.videoId;
-       var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=" +
-                 id + "&type=video&key=" + ytk;
-
-       $.get(url, function(data) {
-         var relatedVideos = [];
-
-         if (data && data.items) {
-           data.items.forEach(function(item) {
-             var vId = item.id.videoId;
-             var snippet = item.snippet;
-
-             relatedVideos.push({
-               id: vId,
-               snippet: snippet
-             });
-           });
-         }
-         if (callback) {
-           callback(relatedVideos);
-         } else {
-           console.log(data);
-           console.log(relatedVideos);
-         }
-       });
-     }
-
      function playWithVideoId(videoId) {
-       window.videoId = videoId;
        notiStorage.videoId = videoId;
        if (!notiStorage.isPlaybackInHistory) {
          notiStorage.playIndex = notiStorage.playHistory.length - 1;
@@ -187,6 +159,8 @@
        if (!seconds) {
          seconds = 30;
        }
+
+       toggleFullscreen();
 
        try{
          var t = player.getCurrentTime();
@@ -238,13 +212,15 @@
          notiStorage.isPlaybackInHistory = false;
          try{
            _getRelatedVideo(function(data) {
+
              if (data.length < 1) return;
-             var video;
+             var video = false;
              data.forEach(function(d) {
                if (!video && notiStorage.playHistory.indexOf(d.id) == -1) {
                  video = d;
                }
              });
+             
              if (!video) video = data[0];
              playWithVideoId(video.id);
            });
@@ -253,24 +229,36 @@
      }
 
      function playerPreviousVideo() {
-       notiStorage.isPlaybackInHistory = true;
-       if (notiStorage.playIndex == 0) {
-         console.log("cant go further back, beginning reached");
-         return;
+
+       if (player.getCurrentTime() > 5) {
+         seekTo(0);
+       } else { 
+         notiStorage.isPlaybackInHistory = true;
+         if (notiStorage.playIndex == 0) {
+           console.log("cant go further back, beginning reached");
+           return;
+         }
+         notiStorage.playIndex = notiStorage.playIndex - 1;
+         var id = notiStorage.playHistory[notiStorage.playIndex];
+         playWithVideoId(id);
        }
-       notiStorage.playIndex = notiStorage.playIndex - 1;
-       var id = notiStorage.playHistory[notiStorage.playIndex];
-       playWithVideoId(id);
      }
 
      function getVideoData() {
        _fetchVideoData(function(data) {
-         var snippet = data.items[0].snippet;
-         var title = snippet.title;
-         var thumbnail = snippet.thumbnails.maxres.url;
+         if (data.items
+             && data.items.length > 0
+             && data.items[0].snippet) {
+           var snippet = data.items[0].snippet;
+           var title = snippet.title;
+           var thumbnail = snippet.thumbnails.maxres.url;
+           var duration = player.getDuration();
+           var isLoop = notiStorage.isLoopVideo;
+           var videoId = notiStorage.videoId;
 
-         if (NotiPlay) {
-           NotiPlay.onVideoData(title, thumbnail);
+           if (NotiPlay) {
+             NotiPlay.onVideoData(title, thumbnail, duration, isLoop, videoId);
+           }
          }
        });
      }
@@ -285,6 +273,89 @@
        }catch(e) {}
      }
 
+     function setLoopVideo(isLoop) {
+       notiStorage.isLoopVideo = isLoop;
+     }
+
+     function toggleFullscreen() {
+       if (notiStorage.isFullscreen) exitFullscreen();
+       else requestFullscreen();
+     }
+
+     function requestFullscreen() {
+       notiStorage.isFullscreen = true;
+       var e = document.getElementById("notiplay-iframe");
+       if (e.requestFullscreen) {
+         e.requestFullscreen();
+       } else if (e.webkitRequestFullscreen) {
+         e.webkitRequestFullscreen();
+       } else if (e.mozRequestFullScreen) {
+         e.mozRequestFullScreen();
+       } else if (e.msRequestFullscreen) {
+         e.msRequestFullscreen();
+       }
+     }
+
+     function exitFullscreen() {
+       notiStorage.isFullscreen = false;
+       if (document.exitFullscreen) {
+         document.exitFullscreen();
+       } else if (document.msExitFullscreen) {
+         document.msExitFullscreen();
+       } else if (document.mozCancelFullScreen) {
+         document.mozCancelFullScreen();
+       } else if (document.webkitExitFullscreen) {
+         document.webkitExitFullscreen();
+       }
+     }
+     
+     function _runWhenPlayerReady(callable) {
+       if (!playerStats.ready) {
+         playerStats.readyCallables.push(callable);
+       } else {
+         callable();
+       };
+     }
+     
+     function _fetchVideoData(callback) {
+       $.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" +
+                  notiStorage.videoId + "&key=" + ytk, function(data) {
+                    if (callback) {
+                      callback(data);
+                    } else {
+                      console.log(data);
+                    }
+                  });
+     }
+
+     function _getRelatedVideo(callback) {
+       var id = notiStorage.videoId;
+       var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=" +
+                 id + "&type=video&key=" + ytk;
+       
+       $.get(url, function(data) {
+         var relatedVideos = [];
+         if (data && data.items) {
+           data.items.forEach(function(item) {
+             var vId = item.id.videoId;
+             var snippet = item.snippet;
+
+             relatedVideos.push({
+               id: vId,
+               snippet: snippet
+             });
+           });
+         }
+         if (callback) {
+           callback(relatedVideos);
+         } else {
+           console.log(data);
+           console.log(relatedVideos);
+         }
+       });
+     }
+
+     
 
     </script>
   </body>

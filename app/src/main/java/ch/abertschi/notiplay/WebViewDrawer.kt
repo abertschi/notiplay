@@ -4,6 +4,7 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.FileObserver.DELETE
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -13,17 +14,17 @@ import android.view.WindowManager
 import android.webkit.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.nio.charset.Charset
 import java.util.*
+import kotlin.collections.HashMap
 
 /**
  * Created by abertschi on 26.01.18.
  */
 
 class WebViewDrawer(val context: Context) : NotiRunnable {
-
-    override fun toggleWebview() {
-    }
 
     private val handler = Handler(Looper.getMainLooper())
     private var webView: WebView? = null
@@ -32,10 +33,14 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
     private var videoId: String? = null
     private var onCloseCallback: (() -> Unit)? = null
 
-    var debug: Boolean = false
+    val httpClient = OkHttpClient()
+    val jqueryUrl = "http://code.jquery.com/jquery-3.3.1.min.js"
+    var googleYtV3VideoApi = "https://www.googleapis.com/youtube/v3/"
+
+    var debug: Boolean = true
 
 
-    fun setOnCloseCallback(c: (() -> Unit)){
+    fun setOnCloseCallback(c: (() -> Unit)) {
         this.onCloseCallback = c
     }
 
@@ -54,8 +59,8 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
         params.gravity = Gravity.TOP or Gravity.START
         params.x = 0
         params.y = 400
-        params.width = if (debug) 640 else 0
-        params.height = if (debug) 480 else 0
+        params.width = if (debug) 1280 else 0
+        params.height = if (debug) 960 else 0
 
         this.webView = WebView(context)
 
@@ -63,14 +68,25 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
 
             // Handle API until level 21
             override fun shouldInterceptRequest(view: WebView, url: String): WebResourceResponse? {
-                return getNewResponse(url)
+                if (url.contains(jqueryUrl)) {
+                    return super.shouldInterceptRequest(view, url)
+                } else {
+                    return getNewResponse(url)
+                }
             }
 
 
             @TargetApi(Build.VERSION_CODES.LOLLIPOP)
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val url = request?.url.toString()
+                if (url.contains(jqueryUrl)) {
+                    return super.shouldInterceptRequest(view, request)
+                } else {
+                    return getNewResponse(url)
+                }
+            }
 
+            private fun getNewResponse(url: String): WebResourceResponse? {
                 if (url.contains("/endProcess")) {
                     windowManager.removeView(webView)
                     webView?.post { webView?.destroy() }
@@ -78,33 +94,49 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
                     return WebResourceResponse("bgsType", "someEncoding", null)
                 }
 
-                return getNewResponse(url)
-            }
+                val u = url.trim { it <= ' ' }
 
-            private fun getNewResponse(url: String): WebResourceResponse? {
-
+                var origin = ""
+                if (url.startsWith(googleYtV3VideoApi)) {
+                    origin = "null"
+                } else {
+                    origin = "https://www.youtube.com"
+                }
                 try {
-                    val httpClient = OkHttpClient()
-
                     val request = Request.Builder()
-                            .url(url.trim { it <= ' ' })
-                            .addHeader("Referer", "https://www.youtube.com/watch?v=${videoId}")
-                            .addHeader("User Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) " +
+                            .url(u)
+                            .addHeader("Origin", origin)
+                            .addHeader("origin", origin)
+                            .addHeader("Referer", origin)
+                            .addHeader("Access-Control-Allow-Credentials", "false")
+                            .addHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) " +
                                     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36")
                             .build()
-                    println("newresponse: " + url)
-                    val response = httpClient.newCall(request).execute()
 
-                    return WebResourceResponse(
-                            null,
-                            response.header("content-encoding", "utf-8"),
-                            response.body()?.byteStream()
-                    )
+
+                    val response = httpClient.newCall(request).execute()
+                    val headers = HashMap<String, String>()
+                    val allowHeaders = "accept, authorization, Content-Type, X-Walltime-Ms, " +
+                            "X-Restrict-Formats-Hint, X-Bandwidth-Est, X-Bandwidth-Est3, content-length"
+                    headers.put("Connection", "close")
+                    headers.put("Access-Control-Allow-Methods", "POST,GET,OPTIONS,PUT,DELETE")
+                    headers.put("Access-Control-Max-Age", "1200");
+                    headers.put("Access-Control-Allow-Origin", origin)
+                    headers.put("Access-Control-Allow-Credentials", "true")
+                    headers.put("Access-Control-Expose-Headers", allowHeaders)
+                    headers.put("Access-Control-Allow-Headers", allowHeaders)
+
+                    return WebResourceResponse(null,
+                            response.header("content-encoding", "utf-8")
+                            , 200,
+                            "Ok",
+                            headers,
+                            response.body()?.byteStream())
 
                 } catch (e: Exception) {
+                    System.err.println(u + e)
                     return null
                 }
-
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest,
@@ -113,7 +145,6 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
             }
 
             override fun onPageFinished(view: WebView, url: String) {
-                //view.loadUrl("javascript:(function() { document.getElementById('ytplayer').click(); })()");
             }
 
         }
@@ -125,28 +156,27 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
         webSettings.javaScriptEnabled = true
         webSettings.mediaPlaybackRequiresUserGesture = false
         webSettings.builtInZoomControls = true
+        webSettings.allowUniversalAccessFromFileURLs = true
+        webSettings.allowContentAccess = true
+        webSettings.allowFileAccessFromFileURLs = true
+        webSettings.allowFileAccess = true
         webSettings.pluginState = WebSettings.PluginState.ON
+        webSettings.loadWithOverviewMode = true
+        webSettings.useWideViewPort = true
         windowManager.addView(webView, params)
 
-        var html = loadWebpage()
+        var html = loadWebpage(webAsset)
         webView?.loadData(html, "text/html", null)
-
-//        timer.schedule(timerTask { seekForward() }, 10000)
-//        timer.schedule(timerTask { seekForward(100) }, 11000)
-//        timer.schedule(timerTask { seekForward(10) }, 12000)
-//        timer.schedule(timerTask { seekBackward(40) }, 14000)
-//        timer.schedule(timerTask { seekBackward(5) }, 16000)
     }
 
 
-    private fun loadWebpage(): String {
+    fun loadWebpage(webAsset: String): String {
         val stream = context.assets.open(webAsset)
         val size = stream.available()
         val buffer = ByteArray(size)
         stream.read(buffer)
         stream.close()
-        val str =  buffer.toString(Charset.defaultCharset())
-        println(str)
+        val str = buffer.toString(Charset.defaultCharset())
         return str
     }
 
@@ -179,10 +209,9 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
 
     override fun playerPreviousVideo() = execJs("playerPreviousVideo();")
 
-
     override fun playerNextVideo() = execJs("playerNextVideo();")
-    override fun getVideoData() = execJs("getVideoData();")
 
+    override fun getVideoData() = execJs("getVideoData();")
 
     fun execJs(command: String) {
         handler.post {
@@ -191,4 +220,18 @@ class WebViewDrawer(val context: Context) : NotiRunnable {
         }
 
     }
+
+    override fun setLoopMode(loopWhenEnd: Boolean) {
+        if (loopWhenEnd) execJs("setLoopVideo(true);")
+        else execJs("setLoopVideo(false);")
+    }
+
+    override fun toggleWebview() {
+    }
+
+    override fun setFullscreen(state: Boolean) {
+        if (state) execJs("requestFullscreen();")
+        else execJs("exitFullscreen();")
+    }
+
 }

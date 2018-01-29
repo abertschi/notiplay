@@ -250,8 +250,17 @@
              && data.items.length > 0
              && data.items[0].snippet) {
            var snippet = data.items[0].snippet;
+
+           var thumnail = '';
+           if (snippet.thumbnails.maxres) {
+             thumbnail = snippet.thumbnails.maxres.url;
+           } else if(snippet.thumbnails.high) {
+             thumbnail = snippet.thumbnails.high.url;
+           } else {
+             console.log(snippet);
+             console.log('todo other res for thumbnail needed!');
+           }
            var title = snippet.title;
-           var thumbnail = snippet.thumbnails.maxres.url;
            var duration = player.getDuration();
            var isLoop = notiStorage.isLoopVideo;
            var videoId = notiStorage.videoId;
@@ -319,13 +328,14 @@
      
      function _fetchVideoData(callback) {
        $.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" +
-                  notiStorage.videoId + "&key=" + ytk, function(data) {
-                    if (callback) {
-                      callback(data);
-                    } else {
-                      console.log(data);
-                    }
-                  });
+             notiStorage.videoId + "&key=" + ytk,
+             function(data) {
+               if (callback) {
+                 callback(data);
+               } else {
+                 console.log(data);
+               }
+             });
      }
 
      function _getRelatedVideo(callback) {

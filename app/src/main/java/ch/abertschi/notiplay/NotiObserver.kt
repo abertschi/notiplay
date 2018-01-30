@@ -74,6 +74,7 @@ interface NotiObserver {
     fun onErrorCode(code: ErrorCode)
 
     fun onPlaybackPosition(seconds: Int)
+
     fun onPlaybackPositionUpdate(seconds: Int)
 
     fun onVideoData(title: String, thumbail: String, duration: Int, loop: Boolean, videoId: String)

@@ -1,11 +1,17 @@
 package ch.abertschi.notiplay
 
+import android.annotation.TargetApi
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.support.annotation.RequiresApi
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
 import ch.abertschi.notiplay.NotiRunner
+
 
 // https://medium.com/@oriharel/how-to-run-javascript-code-in-a-background-service-on-android-8ec1a12ebe92
 // https://stackoverflow.com/questions/36917469/how-can-i-work-around-youtube-api-embed-restrictions-like-other-websites/36952048#36952048
@@ -15,6 +21,27 @@ class MainActivity : AppCompatActivity() {
     // accept youtu.be links
     // add media session and notification
 
+    var OVERLAY_PERMISSION_REQ_CODE = 1234
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun grantPermission() {
+        if (!Settings.canDrawOverlays(this)) {
+            println("request permission")
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + packageName))
+            startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
+            if (!Settings.canDrawOverlays(this)) {
+                println("not granted")
+                // SYSTEM_ALERT_WINDOW permission not granted...
+            }
+        }
+    }
 
     fun getVideoId(intent: Intent?): String? {
         if (intent == null || intent.action == null)
@@ -42,6 +69,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         println("starting service")
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            grantPermission()
+        }
 
         val notiIntent = Intent(this@MainActivity, NotiRunner::class.java)
         println(intent.action)

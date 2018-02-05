@@ -49,6 +49,7 @@ class NotiRunner : Service(), NotiObserver {
         val ACTION_NEXT = "action_next"
         val ACTION_PREVIOUS = "action_previous"
         val ACTION_STOP = "action_stop"
+        val ACTION_QUIT_FULLSCREEN = "action_quit_fullscreen"
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -104,6 +105,7 @@ class NotiRunner : Service(), NotiObserver {
             return
 
         val action = intent.action
+        println(action)
 
         if (action.equals(ACTION_PLAY, ignoreCase = true)) {
             controller?.transportControls?.play()
@@ -122,6 +124,8 @@ class NotiRunner : Service(), NotiObserver {
         } else if (action.equals(ACTION_OPEN_IN_BROWSER, ignoreCase = true)) {
             wantsPlaybackPosition = true
             drawer?.getPlaybackPosition()
+        } else if (action.equals(ACTION_QUIT_FULLSCREEN, ignoreCase = true)) {
+            drawer?.launchFloatingWindow()
         }
     }
 

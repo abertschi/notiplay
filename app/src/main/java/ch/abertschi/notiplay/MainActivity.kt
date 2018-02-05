@@ -76,6 +76,8 @@ class MainActivity : AppCompatActivity() {
 
         val notiIntent = Intent(this@MainActivity, NotiRunner::class.java)
         println(intent.action)
+
+
         if (intent.action == Intent.ACTION_SEND) {
             val videoId: String? = getVideoId(intent)
 
@@ -90,6 +92,11 @@ class MainActivity : AppCompatActivity() {
             return
 
         } else {
+            notiIntent.putExtra(NotiRunner.INTENT_VIDEO_ID, "-CzBYn7iRSI")
+            notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startService(notiIntent)
+            ActivityCompat.finishAffinity(this)
+
             setContentView(R.layout.activity_main)
         }
 

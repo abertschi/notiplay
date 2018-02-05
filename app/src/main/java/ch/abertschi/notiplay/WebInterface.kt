@@ -6,7 +6,7 @@ import android.webkit.JavascriptInterface
 /**
  * Created by abertschi on 25.01.18.
  */
-class WebInterface(val context: Context, var observers: List<NotiObserver>) {
+class WebInterface(val acontext: Context, var observers: List<NotiObserver>) {
 
     @JavascriptInterface
     fun hello(): Unit = throw UnsupportedOperationException("yay")

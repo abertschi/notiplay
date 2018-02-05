@@ -29,6 +29,13 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".HorizontalFullscreenActivity"
+                  android:screenOrientation="landscape"
+                  android:configChanges="screenSize|keyboardHidden"
+                  android:excludeFromRecents="true"
+                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        </activity>
+
         <service
             android:name="ch.abertschi.notiplay.NotiRunner"
             android:process=":notiservice"

@@ -73,7 +73,7 @@ class NotiRunner : Service(), NotiObserver {
                 notificationStyle = null
                 notificationBuilder = null
                 Toast.makeText(baseContext, "Loading Youtube video ...", Toast.LENGTH_LONG).show()
-                drawer?.loadWebView()
+                drawer?.startWebView()
 
             }
             val timer = Timer()
@@ -125,7 +125,7 @@ class NotiRunner : Service(), NotiObserver {
             wantsPlaybackPosition = true
             drawer?.getPlaybackPosition()
         } else if (action.equals(ACTION_QUIT_FULLSCREEN, ignoreCase = true)) {
-            drawer?.launchFloatingWindow()
+//            drawer?.launchFloatingWindow()
         }
     }
 

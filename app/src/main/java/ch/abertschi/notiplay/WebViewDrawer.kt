@@ -3,10 +3,12 @@ package ch.abertschi.notiplay
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Looper.getMainLooper
+import android.support.v4.content.ContextCompat.startActivity
 import android.view.WindowManager
 import android.webkit.*
 import okhttp3.OkHttpClient
@@ -54,11 +56,15 @@ class WebViewDrawer(val context: Context) : NotiRunnable, AnkoLogger {
     @SuppressLint("ClickableViewAccessibility")
     fun startWebView() {
         this.webView = NotiplayWebview(context)
+        webView?.onFullScreenAction = this::requestFullScreen
+        webView?.onFloatingWindowAction = this::requestFloatingWindow
+
         webView?.let {
             it.webViewClient = webViewClient
             it.addJavascriptInterface(WebInterface(context, observers), "NotiPlay")
             configureWebView(it.settings)
             it.loadLayout()
+            it.setInitialScale(1)
             it.loadData(assetToString(webAsset), "text/html", null)
         }
     }
@@ -135,12 +141,50 @@ class WebViewDrawer(val context: Context) : NotiRunnable, AnkoLogger {
         else execJs("setLoopVideo(false);")
     }
 
+    private var isFullScreen = false
+
+    fun requestFullScreen() {
+        isFullScreen = true
+        webView?.requestFullScreen()
+        val dialogIntent = Intent(context, HorizontalFullscreenActivity::class.java)
+        dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        dialogIntent.action = "request_fullscreen"
+//        dialogIntent.extras.putString("callback", this::class.java.toString())
+//        dialogIntent.extras.putString("call)
+        startActivity(context, dialogIntent, null)
+    }
+
+    override fun confirmFullscreen() {
+        webView?.confirmFullScreen()
+    }
+
     override fun toggleWebview() {
     }
 
+
+    fun requestFloatingWindow() {
+//        webView?.requestFullScreen
+        isFullScreen = false
+        println("state is: " + isFullScreen)
+        println("confirm floating window")
+        webView?.requestFloatingWindow()
+    }
+
+    fun confirmFloatingWindow() {
+        webView?.confirmFloatingWindow()
+    }
+
+
+    // can not be called by HorizontalView
+    // horizontalview needs to use request/confirm methods
     override fun setFullscreen(state: Boolean) {
-        if (state) execJs("requestFullscreen();")
-        else execJs("exitFullscreen();")
+        throw UnsupportedOperationException()
+
+        if (state && !isFullScreen) {
+            requestFullScreen()
+        } else if (isFullScreen) {
+            requestFloatingWindow()
+        }
     }
 
     override fun removeEventObserver(o: NotiObserver) {

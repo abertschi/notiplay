@@ -28,5 +28,6 @@ interface NotiRunnable {
     fun setLoopMode(loopWhenEnd: Boolean)
     fun getVideoData()
 
+    fun confirmFullscreen()
     fun setFullscreen(state: Boolean)
 }

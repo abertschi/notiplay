@@ -1,13 +1,15 @@
 package ch.abertschi.notiplay
 
 
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.IBinder
+import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -35,9 +37,12 @@ class NotiRunner : Service(), NotiObserver {
     private var notificationId: Int = 1
     private var hasError: Boolean = false
     private var notificationStyle: android.support.v4.media.app.NotificationCompat.MediaStyle? = null
+    private var channelId = "media_playback_channel"
 
     private var videoTitle: String = ""
     private var playbackState: NotiObserver.PlayerState = NotiObserver.PlayerState.UNSTARTED
+
+    lateinit var notificationManager: NotificationManager
 
     companion object {
         val INTENT_VIDEO_ID: String = "video_id"
@@ -49,7 +54,8 @@ class NotiRunner : Service(), NotiObserver {
         val ACTION_NEXT = "action_next"
         val ACTION_PREVIOUS = "action_previous"
         val ACTION_STOP = "action_stop"
-        val ACTION_QUIT_FULLSCREEN = "action_quit_fullscreen"
+        val ACTION_CONFIRM_FULLSCREEN = "action_confirm_fullscreen"
+        val ACTION_REQUEST_FLOATING_WINDOW = "action_request_floating_window"
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -57,6 +63,13 @@ class NotiRunner : Service(), NotiObserver {
         println("videoId from service: " + videoId)
         println("intent: " + intent?.action)
         handleIntent(intent)
+
+        notificationManager = this.getSystemService(Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createChannel()
+        }
 
 
         videoId?.run {
@@ -124,8 +137,11 @@ class NotiRunner : Service(), NotiObserver {
         } else if (action.equals(ACTION_OPEN_IN_BROWSER, ignoreCase = true)) {
             wantsPlaybackPosition = true
             drawer?.getPlaybackPosition()
-        } else if (action.equals(ACTION_QUIT_FULLSCREEN, ignoreCase = true)) {
-//            drawer?.launchFloatingWindow()
+        } else if (action.equals(ACTION_REQUEST_FLOATING_WINDOW, ignoreCase = true)) {
+            drawer?.requestFloatingWindow()
+            drawer?.confirmFloatingWindow()
+        } else if (action.equals(ACTION_CONFIRM_FULLSCREEN, ignoreCase = true)) {
+            drawer?.confirmFullscreen()
         }
     }
 
@@ -145,7 +161,6 @@ class NotiRunner : Service(), NotiObserver {
 
     private var notificationBuilder: NotificationCompat.Builder? = null
 
-
     private fun getNotificationBuilder(): NotificationCompat.Builder {
         val browserIntent = Intent(applicationContext, NotiRunner::class.java)
         browserIntent.action = ACTION_OPEN_IN_BROWSER
@@ -163,7 +178,7 @@ class NotiRunner : Service(), NotiObserver {
 
         this.notificationStyle = style
 
-        return NotificationCompat.Builder(this)
+        return NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(R.drawable.abc_ic_clear_material)
                 .setStyle(style)
                 .setContentTitle(this.videoTitle)
@@ -178,6 +193,22 @@ class NotiRunner : Service(), NotiObserver {
 //                .setLargeIcon(Bitmap.createBitmap()
 
 
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createChannel() {
+        val id = channelId
+
+        // The user-visible name of the channel.
+        val name = "Media playback"
+        val description = "Media playback controls"
+        val importance = NotificationManager.IMPORTANCE_LOW
+        val channel = NotificationChannel(id, name, importance)
+
+        channel.description = description
+        channel.setShowBadge(false)
+        channel.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        notificationManager.createNotificationChannel(channel)
     }
 
     private fun buildNotification(action: NotificationCompat.Action, subTitle: String = "") {

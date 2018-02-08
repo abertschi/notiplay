@@ -8,12 +8,16 @@
     <style>
      body {
        background-color: black;
+       margin: 0;
+       padding: 0;
+       width: 100%;
+       height: 100%;
      }
 
      iframe {
        width: 100%;
-       /* margin-bottom: 10px; */
-       /* padding-bottom: 10px; */
+       /* margin-bottom: 50px; */
+       /* padding-bottom: 50px; */
        height: 100%;
      }
 
@@ -24,7 +28,6 @@
   </head>
   <body>
     <iframe id="notiplay-iframe"
-            width="640" height="480"
             src="https://www.youtube.com/embed/5Svp9E5orvw?enablejsapi=1&controls=1&fs=0&rel=0"
             enablejsapi="1",
             frameborder="0">
@@ -54,7 +57,8 @@
        playIndex: 0,
        isPlaybackInHistory: false,
        isLoopVideo: false,
-       isFullscreen: false
+       isFullscreen: false,
+       isLoadingEndOfVideoAction: false
      };
      
      try {
@@ -62,6 +66,14 @@
      } catch(e) {
        window.NotiPlay = false;
      }
+
+     var playerVars = {
+       autoplay: 1,
+       control: 1, 
+       rel: 0,
+       fs: 0,
+     }
+
      
      function onYouTubeIframeAPIReady() {
        player = new YT.Player('notiplay-iframe', {
@@ -73,6 +85,7 @@
            'onError': onError,
            
          }
+         /* playerVars: playerVars*/
        });
      }
      
@@ -82,10 +95,17 @@
          c();
        });
        playerStats.readyCallables = [];
+       /* notiStorage.isLoadingEndOfVideoAction = false*/
 
        if (NotiPlay) {
          NotiPlay.onPlayerReady();
        }
+
+       /* setTimeout(function(){
+        *   console.log('nowww');
+        * }, 10000);
+        * */
+
        
        setInterval(function(){
          var t = player.getCurrentTime();
@@ -99,14 +119,20 @@
          if (t >= totalTime && totalTime != 0) {
            console.log("end-of-video reached");
 
+           /* if (!notiStorage.isLoadingEndOfVideoAction) {*/
+           /* notiStorage.isLoadingEndOfVideoAction = true;*/
+           
            if (notiStorage.isLoopVideo) {
              console.log("start-of-video");
              seekTo(0);
              playerPlay();
            } else {
              console.log("jump to next video");
-             playerNextVideo();
+             playerNextVideo(function() {
+               /* notiStorage.isLoadingEndOfVideoAction = false;*/
+             });
            }
+           /* }*/
          }
        }, 1000);
      }
@@ -210,7 +236,7 @@
        } catch(e) {};
      }
 
-     function playerNextVideo() {
+     function playerNextVideo(callbackOnDone) {
        if (notiStorage.isPlaybackInHistory
            && notiStorage.playIndex < notiStorage.playHistory.length - 1) {
          
@@ -236,10 +262,13 @@
            });
          } catch(e) {};
        }
+
+       if (callbackOnDone) {
+         callbackOnDone();
+       }
      }
 
      function playerPreviousVideo() {
-
        if (player.getCurrentTime() > 5) {
          seekTo(0);
        } else { 

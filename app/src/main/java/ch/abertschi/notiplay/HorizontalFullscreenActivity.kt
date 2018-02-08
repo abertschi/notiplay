@@ -5,66 +5,78 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
-import ch.abertschi.notiplay.NotiRunner.Companion.ACTION_QUIT_FULLSCREEN
 
 /**
  * Created by abertschi on 04.02.18.
  */
-class HorizontalFullscreenActivity: Activity() {
+class HorizontalFullscreenActivity : Activity() {
 
     companion object {
-        val ACTION_QUIT_ACTIVITY = "action_quit_horizontal_fullscreen_activity"
+        val ACTION_REQUEST_FULLSCREEN = "action_request_fullscreen"
+        val ACTION_QUIT_FULLSCREEN = "action_quit_fullscreen"
     }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         println("oncreate")
-        quitByIntent = false
         setContentView(R.layout.activity_fullscreen)
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
+        handleIntent(intent)
     }
-
-    fun quitFullScreen() {
-        if (!quitByIntent) {
-            val intent = Intent(applicationContext, NotiRunner::class.java)
-            intent.action = ACTION_QUIT_FULLSCREEN
-            this.startService(intent)
-        }
-        this.finish()
-    }
-
-    private var quitByIntent = false
 
     override fun onNewIntent(intent: Intent) {
-        val extras = intent.extras
-        if (intent.action.equals(ACTION_QUIT_ACTIVITY)) {
-            quitByIntent = true
-            this.finish()
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    fun confirmFullScreen() {
+        val intent = Intent(applicationContext, NotiRunner::class.java)
+        intent.action = NotiRunner.ACTION_CONFIRM_FULLSCREEN
+        println("CONFIRM FULLSCREEN")
+        this.startService(intent)
+    }
+
+    fun requestFloatingWindow() {
+        val intent = Intent(applicationContext, NotiRunner::class.java)
+        intent.action = NotiRunner.ACTION_REQUEST_FLOATING_WINDOW
+        println("confirming fullscreen quit")
+        this.startService(intent)
+        moveTaskToBack(true)
+    }
+
+    fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        println("handle intent: " + intent)
+
+        if (intent.action.equals(ACTION_REQUEST_FULLSCREEN)) {
+            confirmFullScreen()
+        } else if (intent.action.equals(ACTION_QUIT_FULLSCREEN)) {
+            requestFloatingWindow()
         }
     }
 
     override fun onResume() {
         super.onResume()
+        println("onresume")
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
+        confirmFullScreen()
     }
 
     override fun onBackPressed() {
         super.onBackPressed()
-        println("back pressed")
-        quitFullScreen()
+        println("onBackPRessed")
+//        requestFloatingWindow()
     }
 
     override fun onPause() {
         super.onPause()
-        println("on pause")
-        quitFullScreen()
+        println("onPause")
+        requestFloatingWindow()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
-        // ignore orientation/keyboard change
         super.onConfigurationChanged(newConfig)
     }
 }

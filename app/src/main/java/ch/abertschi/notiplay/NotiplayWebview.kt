@@ -13,6 +13,7 @@ import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 import android.view.animation.Animation
 import android.view.animation.Transformation
 import android.webkit.WebView
+import android.widget.Toast
 import org.jetbrains.anko.padding
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -55,6 +56,8 @@ class NotiplayWebview(context: Context) : WebView(context) {
 
     var onFloatingWindowAction: (() -> Unit)? = null
     var onFullScreenAction: (() -> Unit)? = null
+
+    var isAlphaActive = false
 
 
 //    fun toggleFullScreen() {
@@ -130,6 +133,7 @@ class NotiplayWebview(context: Context) : WebView(context) {
         this.layoutTransition = LayoutTransition()
 
         setOnTouchListener { v, event ->
+
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     val t = System.currentTimeMillis()
@@ -140,15 +144,45 @@ class NotiplayWebview(context: Context) : WebView(context) {
                             true
                         } else {
                             onFloatingWindowAction?.invoke()
-                            false
+                            true
                         }
                         return@setOnTouchListener true
                     }
                     lastTapMs = t
                     lastTouchX = event.x
                     lastTouchY = event.y
+                    println(getViewCorrectedViewPortSize().first)
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    val w = layoutParams!!.width
+                    val h = layoutParams!!.height
+                    val screenSize = getViewCorrectedViewPortSize()
+                    val padding = 5
+
+
+                    if (!isFullScreen) {
+                        isAlphaActive = true
+                        if (event.rawX - event.x <= padding) {
+                            val a = (event.x) / w
+                            this@NotiplayWebview.alpha = a
+                        } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
+                                        <= padding)) {
+                            val a = (w - event.x) / w
+                            println("got " + a)
+                            this@NotiplayWebview.alpha = a
+
+                        } else if (event.rawY - event.y <= padding) {
+                            this@NotiplayWebview.alpha = event.y / h
+
+                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
+                                        <= padding)) {
+                            this@NotiplayWebview.alpha = (h - event.y) / h
+                        } else {
+                            this@NotiplayWebview.alpha = 1f
+                            isAlphaActive = false
+                        }
+                    }
+
                     if (actionScalingActive) {
                         return@setOnTouchListener true
                     } else {
@@ -158,15 +192,22 @@ class NotiplayWebview(context: Context) : WebView(context) {
                     }
                 }
                 MotionEvent.ACTION_UP -> {
-                    alignFloatingWindow()
+                    if (isAlphaActive){
+                        makeVisible(false)
+                        Toast.makeText(this.context.applicationContext, "Floating Window disabled", Toast.LENGTH_SHORT)
+                    } else {
+                        alignFloatingWindow()
+                    }
+
                     actionScalingActive = false
                 }
             }
-            return@setOnTouchListener false
+            return@setOnTouchListener !isFullScreen
         }
         windowManager.addView(this, layoutParams)
         alignFloatingWindow()
     }
+
 
     private fun alignFloatingWindow() {
         layoutParams?.run {
@@ -308,6 +349,7 @@ class NotiplayWebview(context: Context) : WebView(context) {
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
+//        canvas?.saveLayerAlpha(0f, 0f, canvas!!.getWidth().toFloat(), canvas!!.getHeight().toFloat(), 10, Canvas.ALL_SAVE_FLAG);
 //        println("ondraw")
         canvas?.run {
             //            canvas.save()

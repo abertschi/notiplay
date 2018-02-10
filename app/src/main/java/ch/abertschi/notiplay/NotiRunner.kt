@@ -5,7 +5,6 @@ import android.app.*
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
@@ -183,7 +182,6 @@ class NotiRunner : Service(), NotiObserver {
                 .setStyle(style)
                 .setContentTitle(this.videoTitle)
                 .setContentText("")
-                .setColor(Color.BLACK)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOngoing(false)
                 .setAutoCancel(false)

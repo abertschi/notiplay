@@ -36,9 +36,14 @@
                   android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         </activity>
 
+        <!--<service-->
+            <!--android:name="ch.abertschi.notiplay.NotiRunner"-->
+            <!--android:process=":notiservice"-->
+            <!--android:enabled="true"/>-->
+
         <service
-            android:name="ch.abertschi.notiplay.NotiRunner"
-            android:process=":notiservice"
+            android:name="ch.abertschi.notiplay.player.PlaybackService"
+            android:process=":playerservice"
             android:enabled="true"/>
 
     </application>

@@ -10,7 +10,7 @@ import android.support.annotation.RequiresApi
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
-import ch.abertschi.notiplay.NotiRunner
+import ch.abertschi.notiplay.player.PlaybackService
 
 
 // https://medium.com/@oriharel/how-to-run-javascript-code-in-a-background-service-on-android-8ec1a12ebe92
@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
             grantPermission()
         }
 
-        val notiIntent = Intent(this@MainActivity, NotiRunner::class.java)
+        val notiIntent = Intent(this@MainActivity, PlaybackService::class.java)
         println(intent.action)
 
 
@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
             return
 
         } else {
+
             notiIntent.putExtra(NotiRunner.INTENT_VIDEO_ID, "-CzBYn7iRSI")
             notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startService(notiIntent)

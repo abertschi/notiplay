@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.RemoteException
 import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -38,6 +39,14 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         private var CHANNEL_ID = "media_playback_channel"
     }
 
+    private enum class PlayPauseAction {
+        PLAY, PAUSE
+    }
+
+    private var currentPlayPauseAction: PlayPauseAction = PlayPauseAction.PLAY
+    private var currentMetadata: MediaMetadataCompat? = null
+    private var currentPlaybackState: PlaybackStateCompat? = null
+
     val pauseIntent: PendingIntent
     val playIntent: PendingIntent
     val previousIntent: PendingIntent
@@ -45,6 +54,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     val stopIntent: PendingIntent
     val showInSourceAppIntent: PendingIntent
     val showVideoPlayerIntent: PendingIntent
+
 
     val notificationManager: NotificationManager =
             service.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -61,12 +71,36 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
             object : MediaControllerCompat.Callback() {
                 override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                     super.onPlaybackStateChanged(state)
+                    currentPlaybackState = state
+
+                    state?.run {
+                        when (this.state) {
+                            PlaybackStateCompat.STATE_PAUSED -> {
+                                currentPlayPauseAction = PlayPauseAction.PLAY
+                            }
+                            PlaybackStateCompat.STATE_PLAYING -> {
+                                currentPlayPauseAction = PlayPauseAction.PAUSE
+                            }
+                        }
+                        createNotification()?.run {
+                            notificationManager.notify(NOTIFICATION_ID, this)
+                        }
+                    }
+                }
+
+                override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+                    super.onMetadataChanged(metadata)
+                    currentMetadata = metadata
+
+                    createNotification()?.run {
+                        notificationManager.notify(NOTIFICATION_ID, this)
+                    }
                 }
 
                 override fun onSessionDestroyed() {
                     super.onSessionDestroyed()
+                    updateSessionToken()
                 }
-
             }
 
     init {
@@ -124,44 +158,63 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
             when (action) {
                 ACTION_PAUSE -> {
                     transportControls?.pause()
+                    currentPlayPauseAction = PlayPauseAction.PLAY
                 }
                 ACTION_PLAY -> {
                     transportControls?.play()
+                    currentPlayPauseAction = PlayPauseAction.PAUSE
                 }
                 ACTION_NEXT -> {
                     transportControls?.skipToNext()
                 }
                 ACTION_STOP -> {
                     transportControls?.stop()
+                    stopNotifications()
                 }
                 ACTION_PREVIOUS -> transportControls?.skipToPrevious()
 
                 ACTION_SHOW_VIDEO_PLAYER -> {
+                    service.togglePlayerWindow()
 
                 }
                 ACTION_SHOW_IN_SOURCE_APP -> {
+                    service.showFromOrigin()
 
                 }
                 else -> {
                     error("No intent found with action: " + action)
                 }
             }
+            createNotification()?.run {
+                notificationManager.notify(NOTIFICATION_ID, this)
+            }
         }
     }
 
     @Throws(RemoteException::class)
     private fun updateSessionToken() {
-        sessionToken = service.getSessionToken()
-        if (sessionToken != null) {
-            controller = MediaControllerCompat(service, sessionToken!!)
-            transportControls = controller!!.transportControls
-            if (started) {
-                controller!!.registerCallback(mediaControllerCallback)
+        val newToken = service.getSessionToken()
+
+        if (sessionToken == null && newToken != null || // first run
+                sessionToken != null && sessionToken!! != newToken) { // token changed
+
+            controller?.run { this.unregisterCallback(mediaControllerCallback) }
+            sessionToken = newToken
+            sessionToken?.run {
+                if (sessionToken != null) {
+                    controller = MediaControllerCompat(service, sessionToken!!)
+                    transportControls = controller!!.transportControls
+                    if (started) {
+                        controller!!.registerCallback(mediaControllerCallback)
+                    }
+                }
             }
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(): Notification? {
+//        if (currentMetadata != null || currentPlayPauseAction == null) return null
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel()
         }
@@ -177,13 +230,17 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 .setSmallIcon(R.drawable.abc_action_bar_item_background_material)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOnlyAlertOnce(true)
-//                .setContentIntent(createContentIntent(description))
-                .setContentTitle("title")//description.getTitle())
-                .setContentText("text")
+//                .setContentIntent(createContentIntent())
+                .setContentTitle(currentMetadata?.description?.title ?: "title")
+                .setContentText(currentMetadata?.description?.subtitle ?: "subtitle")
 //                .setLargeIcon(art)
 
 
         return b.build()
+    }
+
+    private fun createContentIntent(): PendingIntent? {
+        return null
     }
 
     private fun generateAction(icon: Int, title: String, intent: PendingIntent): NotificationCompat.Action {
@@ -191,12 +248,16 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     }
 
     private fun addActions(builder: NotificationCompat.Builder) {
-        builder.addAction(generateAction(R.mipmap.ic_skip_previous_white_48dp, "Video Player", showVideoPlayerIntent))
-        builder.addAction(generateAction(R.mipmap.ic_skip_previous_white_48dp, "Previous", previousIntent))
-        builder.addAction(generateAction(R.mipmap.ic_skip_previous_white_48dp, "Play", playIntent))
-//        builder.addAction(playAction)
-        builder.addAction(generateAction(R.mipmap.ic_skip_next_white_48dp, "Next", nextIntent))
-        builder.addAction(generateAction(R.mipmap.ic_skip_previous_white_48dp, "Open Source", showInSourceAppIntent))
+        builder.addAction(generateAction(R.mipmap.ic_picture_in_picture_black_18dp,
+                "Video Player", showVideoPlayerIntent))
+        builder.addAction(generateAction(R.mipmap.ic_skip_previous_black_36dp, "Previous", previousIntent))
+        if (currentPlayPauseAction == PlayPauseAction.PLAY) {
+            builder.addAction(generateAction(R.mipmap.ic_play_arrow_black_36dp, "Play", playIntent))
+        } else {
+            builder.addAction(generateAction(R.mipmap.ic_pause_black_36dp, "Pause", pauseIntent))
+        }
+        builder.addAction(generateAction(R.mipmap.ic_skip_next_black_36dp, "Next", nextIntent))
+        builder.addAction(generateAction(R.mipmap.ic_subscriptions_black_18dp, "Open Source", showInSourceAppIntent))
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

@@ -5,16 +5,22 @@ import android.content.Intent
 import android.os.IBinder
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 
 /**
  * Created by abertschi on 10.02.18.
  */
-class PlaybackService : Service(), PlaybackManager.MetadataListener {
+class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackManager.PlaybackListener {
+
+    companion object {
+        val ACTION_INIT_WITH_ID = "action_init_with_id"
+        val EXTRA_VIDEO_ID = "extra_video_id"
+    }
 
     lateinit var mediaSession: MediaSessionCompat
     lateinit var playbackNotifications: PlaybackNotificationManager
 
-    private var playbackManager: PlaybackManager = PlaybackManager(this, this)
+    private var playbackManager: PlaybackManager = PlaybackManager(this, this, this)
 
 
     override fun onCreate() {
@@ -30,28 +36,38 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return super.onStartCommand(intent, flags, startId)
+        super.onStartCommand(intent, flags, startId)
+        if (intent != null && intent.action == ACTION_INIT_WITH_ID) {
+            intent.getStringExtra(EXTRA_VIDEO_ID)?.run {
+                playVideoId(this)
+            }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 
-//    fun getMediaController() = mediaController
+    fun playVideoId(id: String) {
+        playbackManager.startPlaybackWithVideoId(id)
+    }
 
     fun getSessionToken() = mediaSession.sessionToken
 
-    fun togglePlayerWindow() {
-        playbackManager?.togglePlayerWindow()
+    override fun onMetadataChanged(metadata: MediaMetadataCompat) {
+        mediaSession.setMetadata(metadata)
     }
 
-    fun showFromOrigin() {
+    override fun onPlaybackChanged(state: PlaybackStateCompat) {
+        mediaSession.setPlaybackState(state)
+    }
+
+    override fun onPlaybackStarted() {
+    }
+
+    override fun onPlaybackStoped() {
     }
 
     override fun onVideoIdChanged(id: String) {
-    }
-
-    override fun onMetadataChanged(metadata: MediaMetadataCompat) {
-//        mediaSession?.controller?.
     }
 }

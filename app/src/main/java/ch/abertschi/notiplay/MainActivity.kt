@@ -49,8 +49,9 @@ class MainActivity : AppCompatActivity() {
 
         val url = intent.getStringExtra(Intent.EXTRA_TEXT)
         println(url)
-        val g = Regex("[?&]v=([0-9a-zA-Z-_]*)").find(url)
+        val g = Regex("[?&]v=([0-9a-zA-Z-_]*)").find(url) // v?=
         val g2 = Regex("youtu.be/([0-9a-zA-Z-_]*)").find(url) // youtu.be links
+        val g3 = Regex("youtube.com/embed/([0-9a-zA-Z-_]*)").find(url) // /embed/
 
         if (g?.groups?.size ?: 0 > 1) {
             val id = g!!.groups[1]!!.value
@@ -59,6 +60,12 @@ class MainActivity : AppCompatActivity() {
         }
         if (g2?.groups?.size ?: 0 > 1) {
             val id = g2!!.groups[1]!!.value
+            println(id)
+            return id
+        }
+
+        if (g3?.groups?.size ?: 0 > 1) {
+            val id = g3!!.groups[1]!!.value
             println(id)
             return id
         }
@@ -75,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val notiIntent = Intent(this@MainActivity, PlaybackService::class.java)
+        notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
         println(intent.action)
 
 
@@ -84,7 +92,7 @@ class MainActivity : AppCompatActivity() {
             if (videoId == null) {
                 Toast.makeText(this, "No video found :/", Toast.LENGTH_SHORT).show()
             }
-            notiIntent.putExtra(NotiRunner.INTENT_VIDEO_ID, videoId)
+            notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, videoId)
             notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             println(videoId)
             startService(notiIntent)

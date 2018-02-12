@@ -25,7 +25,7 @@ import kotlin.collections.HashMap
  * Created by abertschi on 26.01.18.
  */
 
-class WebViewDrawer(val context: Context) : NotiRunnable, AnkoLogger {
+class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 
     private val handler = Handler(Looper.getMainLooper())
     private var observers: MutableList<NotiObserver> = ArrayList()
@@ -178,8 +178,7 @@ class WebViewDrawer(val context: Context) : NotiRunnable, AnkoLogger {
     // can not be called by HorizontalView
     // horizontalview needs to use request/confirm methods
     override fun setFullscreen(state: Boolean) {
-        throw UnsupportedOperationException()
-
+//        throw UnsupportedOperationException()
         if (state && !isFullScreen) {
             requestFullScreen()
         } else if (isFullScreen) {

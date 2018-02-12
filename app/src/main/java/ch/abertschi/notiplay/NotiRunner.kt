@@ -28,7 +28,7 @@ import kotlin.concurrent.timerTask
 
 class NotiRunner : Service(), NotiObserver {
 
-    private var drawer: WebViewDrawer? = null
+    private var drawer: YoutubePlayer? = null
     private var videoId: String? = null
     private var controller: MediaControllerCompat? = null
     private var session: MediaSessionCompat? = null
@@ -76,7 +76,7 @@ class NotiRunner : Service(), NotiObserver {
             this@NotiRunner.videoTitle = "video " + videoId
 
             if (drawer == null) {
-                drawer = WebViewDrawer(this@NotiRunner)
+                drawer = YoutubePlayer(this@NotiRunner)
                 drawer?.addEventObserver(this@NotiRunner)
                 drawer?.setOnCloseCallback {
                     stopSelf()

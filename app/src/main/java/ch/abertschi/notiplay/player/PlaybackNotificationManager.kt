@@ -159,6 +159,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 ACTION_PAUSE -> {
                     transportControls?.pause()
                     currentPlayPauseAction = PlayPauseAction.PLAY
+                    service.stopForeground(true)
                 }
                 ACTION_PLAY -> {
                     transportControls?.play()
@@ -174,11 +175,11 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 ACTION_PREVIOUS -> transportControls?.skipToPrevious()
 
                 ACTION_SHOW_VIDEO_PLAYER -> {
-                    service.togglePlayerWindow()
+                    transportControls?.sendCustomAction(ACTION_SHOW_VIDEO_PLAYER, null)
 
                 }
                 ACTION_SHOW_IN_SOURCE_APP -> {
-                    service.showFromOrigin()
+                    transportControls?.sendCustomAction(ACTION_SHOW_IN_SOURCE_APP, null)
 
                 }
                 else -> {

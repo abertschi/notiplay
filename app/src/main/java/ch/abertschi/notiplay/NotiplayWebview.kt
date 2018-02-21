@@ -13,7 +13,6 @@ import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 import android.view.animation.Animation
 import android.view.animation.Transformation
 import android.webkit.WebView
-import android.widget.Toast
 import org.jetbrains.anko.padding
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -164,28 +163,29 @@ class NotiplayWebview(context: Context) : WebView(context) {
                     val padding = 0
 
 
-                    if (!isFullScreen) {
-                        isAlphaActive = true
-                        if (event.rawX - event.x <= padding) {
-                            val a = (event.x) / w
-                            this@NotiplayWebview.alpha = a
-                        } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
-                                        <= padding)) {
-                            val a = (w - event.x) / w
-                            println("got " + a)
-                            this@NotiplayWebview.alpha = a
-
-                        } else if (event.rawY - event.y <= padding) {
-                            this@NotiplayWebview.alpha = event.y / h
-
-                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
-                                        <= padding)) {
-                            this@NotiplayWebview.alpha = (h - event.y) / h
-                        } else {
-                            this@NotiplayWebview.alpha = 1f
-                            isAlphaActive = false
-                        }
-                    }
+                    isAlphaActive = false
+//                    if (!isFullScreen) {
+//                        isAlphaActive = true
+//                        if (event.rawX - event.x <= padding) {
+//                            val a = (event.x) / w
+//                            this@NotiplayWebview.alpha = a
+//                        } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
+//                                        <= padding)) {
+//                            val a = (w - event.x) / w
+//                            println("got " + a)
+//                            this@NotiplayWebview.alpha = a
+//
+//                        } else if (event.rawY - event.y <= padding) {
+//                            this@NotiplayWebview.alpha = event.y / h
+//
+//                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
+//                                        <= padding)) {
+//                            this@NotiplayWebview.alpha = (h - event.y) / h
+//                        } else {
+//                            this@NotiplayWebview.alpha = 1f
+//                            isAlphaActive = false
+//                        }
+//                    }
 
                     if (actionScalingActive) {
                         return@setOnTouchListener true
@@ -198,7 +198,7 @@ class NotiplayWebview(context: Context) : WebView(context) {
                 MotionEvent.ACTION_UP -> {
                     if (isAlphaActive){
                         makeVisible(false)
-                        Toast.makeText(this.context.applicationContext, "Floating Window disabled", Toast.LENGTH_SHORT)
+//                        Toast.makeText(this.context.applicationContext, "Floating Window disabled", Toast.LENGTH_SHORT)
                     } else {
                         alignFloatingWindow()
                     }

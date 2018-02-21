@@ -50,6 +50,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     private var currentMetadata: MediaMetadataCompat? = null
     private var currentPlaybackState: PlaybackStateCompat? = null
 
+
     val pauseIntent: PendingIntent
     val playIntent: PendingIntent
     val previousIntent: PendingIntent
@@ -57,6 +58,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     val stopIntent: PendingIntent
     val showInSourceAppIntent: PendingIntent
     val showVideoPlayerIntent: PendingIntent
+
 
     val notificationManager: NotificationManager =
             service.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

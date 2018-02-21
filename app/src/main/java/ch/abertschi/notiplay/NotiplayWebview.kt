@@ -20,6 +20,7 @@ import kotlin.math.roundToInt
 
 /**
  * Created by abertschi on 04.02.18.
+ * // todo: replace this by generic view which contains webview (or anything else)
  */
 class NotiplayWebview(context: Context) : WebView(context) {
 

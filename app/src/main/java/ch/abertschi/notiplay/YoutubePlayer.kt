@@ -26,6 +26,9 @@ import kotlin.collections.HashMap
  */
 
 class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
+    override fun toggleVisible() {
+        webView?.toggleVisible()
+    }
 
     private val handler = Handler(Looper.getMainLooper())
     private var observers: MutableList<NotiObserver> = ArrayList()
@@ -48,13 +51,15 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
             "X-Restrict-Formats-Hint, X-Bandwidth-Est, X-Bandwidth-Est3, content-length"
 
 
+    var windowManager: WindowManager? = null
     var webView: NotiplayWebview? = null
     var debug: Boolean = true
-    val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
 
     @SuppressLint("ClickableViewAccessibility")
     fun startWebView() {
+        windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
         this.webView = NotiplayWebview(context)
         webView?.onFullScreenAction = this::requestFullScreen
         webView?.onFloatingWindowAction = this::requestFloatingWindow
@@ -70,7 +75,7 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
     }
 
     fun stopWebView() {
-        windowManager.removeView(webView)
+        windowManager?.removeView(webView)
         webView?.post { webView?.destroy() }
         onCloseCallback?.invoke()
     }

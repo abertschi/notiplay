@@ -16,7 +16,6 @@ class HorizontalFullscreenActivity : Activity() {
         val ACTION_QUIT_FULLSCREEN = "action_quit_fullscreen"
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         println("oncreate")

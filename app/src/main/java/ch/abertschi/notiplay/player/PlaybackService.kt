@@ -19,6 +19,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
 
     lateinit var mediaSession: MediaSessionCompat
     lateinit var playbackNotifications: PlaybackNotificationManager
+    private var currentVideoId: String = ""
 
     private var playbackManager: PlaybackManager = PlaybackManager(this, this, this)
 
@@ -42,6 +43,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
                 playVideoId(this)
             }
         }
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -49,6 +51,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     }
 
     fun playVideoId(id: String) {
+        currentVideoId = id
         playbackManager.startPlaybackWithVideoId(id)
     }
 
@@ -69,5 +72,6 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     }
 
     override fun onVideoIdChanged(id: String) {
+        playVideoId(id)
     }
 }

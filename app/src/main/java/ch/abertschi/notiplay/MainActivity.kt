@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         println("starting service")
+//        YoutubeApiWrapper().getVideoMetadata("-CzBYn7iRSI")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             grantPermission()
@@ -100,12 +101,10 @@ class MainActivity : AppCompatActivity() {
             return
 
         } else {
-
-            notiIntent.putExtra(NotiRunner.INTENT_VIDEO_ID, "-CzBYn7iRSI")
+            notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, "-CzBYn7iRSI")
             notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startService(notiIntent)
             ActivityCompat.finishAffinity(this)
-
             setContentView(R.layout.activity_main)
         }
 

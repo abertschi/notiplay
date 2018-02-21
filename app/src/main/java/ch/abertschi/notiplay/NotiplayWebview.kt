@@ -65,6 +65,10 @@ class NotiplayWebview(context: Context) : WebView(context) {
 //        else launchFullScreen()
 //    }
 
+    fun toggleVisible() {
+        makeVisible(!showFloatingWindow)
+    }
+
     fun makeVisible(state: Boolean) {
         showFloatingWindow = state
         layoutParams?.run {
@@ -157,7 +161,7 @@ class NotiplayWebview(context: Context) : WebView(context) {
                     val w = layoutParams!!.width
                     val h = layoutParams!!.height
                     val screenSize = getViewCorrectedViewPortSize()
-                    val padding = 5
+                    val padding = 0
 
 
                     if (!isFullScreen) {
@@ -216,8 +220,8 @@ class NotiplayWebview(context: Context) : WebView(context) {
         }
 
         val anim = ValueAnimator.ofFloat(0.0f, 1.0f)
-        anim.startDelay = 500
-        anim.duration = 1000
+        anim.startDelay = 100
+        anim.duration = 500
         anim.interpolator = FastOutSlowInInterpolator()
 
         anim.addUpdateListener {

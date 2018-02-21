@@ -8,14 +8,17 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.RemoteException
 import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.MediaMetadataCompat.METADATA_KEY_ALBUM_ART
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.text.Html
 import ch.abertschi.notiplay.R
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
@@ -54,7 +57,6 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     val stopIntent: PendingIntent
     val showInSourceAppIntent: PendingIntent
     val showVideoPlayerIntent: PendingIntent
-
 
     val notificationManager: NotificationManager =
             service.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -213,14 +215,15 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         }
     }
 
+
     private fun createNotification(): Notification? {
 //        if (currentMetadata != null || currentPlayPauseAction == null) return null
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel()
         }
         val b = NotificationCompat.Builder(service, CHANNEL_ID)
         addActions(b)
+        val title = currentMetadata?.description?.title?.toString() ?: "loading title ..."
         b.setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()
                 .setShowActionsInCompactView(1, 2, 3)
                 .setShowCancelButton(true)
@@ -228,15 +231,25 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 .setMediaSession(sessionToken))
                 .setDeleteIntent(stopIntent)
 //                .setColor(mNotificationColor)
+                .setPriority(100)
+                .setSubText(getPlaybackStateText())
+//                .setTicker("ticker")
+
                 .setSmallIcon(R.drawable.abc_action_bar_item_background_material)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOnlyAlertOnce(true)
 //                .setContentIntent(createContentIntent())
-                .setContentTitle(currentMetadata?.description?.title ?: "title")
-                .setContentText(currentMetadata?.description?.subtitle ?: "subtitle")
-//                .setLargeIcon(art)
+                .setContentTitle(Html
+                        .fromHtml("<b>$title</b>"))
+//                .setContentText(currentMetadata?.description?.subtitle ?: "subtitle")
 
-
+        val metaArtBitmap = currentMetadata?.getBitmap(METADATA_KEY_ALBUM_ART)
+        if (metaArtBitmap == null) {
+            b.setLargeIcon(BitmapFactory.decodeResource(service.resources,
+                    R.mipmap.ic_launcher))
+        } else {
+            b.setLargeIcon(metaArtBitmap)
+        }
         return b.build()
     }
 
@@ -259,6 +272,17 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         }
         builder.addAction(generateAction(R.mipmap.ic_skip_next_black_36dp, "Next", nextIntent))
         builder.addAction(generateAction(R.mipmap.ic_subscriptions_black_18dp, "Open Source", showInSourceAppIntent))
+    }
+
+    private fun getPlaybackStateText(): String {
+        if (currentPlaybackState == null) return "loading"
+        return when (currentPlaybackState!!.state) {
+            PlaybackStateCompat.STATE_PLAYING -> "playing"
+            PlaybackStateCompat.STATE_PAUSED -> "paused"
+            PlaybackStateCompat.STATE_BUFFERING -> "buffering"
+            PlaybackStateCompat.STATE_CONNECTING -> "connecting"
+            else -> "loading"
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)

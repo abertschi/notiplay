@@ -71,6 +71,7 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
         showFloatingWindow = state
         layoutParams?.run {
             if (state) {
+                this.alpha = 1.0f
                 this.height = storedLayoutParamsHeight
                 this.width = storedLayoutParamsWidth
             } else {
@@ -114,6 +115,7 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
                         val h = layoutParams!!.height
                         val screenSize = getViewCorrectedViewPortSize()
                         val padding = 0
+
 
 
                         isAlphaActive = false

@@ -39,6 +39,13 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
             }
 
             override fun onPlaybackEndReached() {
+                val pStateCompat = PlaybackStateCompat.Builder()
+                        .setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+                                PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                                1.0f, SystemClock.elapsedRealtime()).build()
+
+                playbackListener.onPlaybackChanged(pStateCompat)
+
             }
 
             override fun onPlayerStateChange(s: NotiObserver.PlayerState) {
@@ -175,7 +182,6 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
             }
         }
     }
-
 
 
     fun startPlaybackWithVideoId(id: String) {

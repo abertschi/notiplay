@@ -79,5 +79,7 @@ interface NotiObserver {
 
     fun onVideoData(title: String, thumbail: String, duration: Int, loop: Boolean, videoId: String)
 
+    fun onPlaybackEndReached()
+
 
 }

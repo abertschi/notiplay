@@ -11,7 +11,9 @@ import ch.abertschi.notiplay.NotiObserver
 import ch.abertschi.notiplay.YoutubePlayer
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
+import org.jetbrains.anko.info
 import org.jetbrains.anko.toast
+
 
 /**
  * Created by abertschi on 10.02.18.
@@ -34,6 +36,9 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
             override fun onPlayerReady() {
                 playbackListener?.onPlaybackStarted()
                 youtubePlayer?.playerPlay()
+            }
+
+            override fun onPlaybackEndReached() {
             }
 
             override fun onPlayerStateChange(s: NotiObserver.PlayerState) {
@@ -88,7 +93,7 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
             }
 
             override fun onPlaybackPositionUpdate(seconds: Int) {
-                println(seconds.toLong())
+
                 val pStateCompat = PlaybackStateCompat.Builder()
                         .setState(lastKnownPlaybackState.toInt(), seconds.toLong() * 1000,
                                 1.0f, SystemClock.elapsedRealtime()).build()
@@ -126,11 +131,15 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
 
         override fun onSkipToNext() {
             super.onSkipToNext()
+            info { "onSkipToNext" }
 //            youtubePlayer.playerNextVideo() // TODO: Metadata
         }
 
         override fun onSkipToPrevious() {
             super.onSkipToPrevious()
+            info { "onSkipToPrevious" }
+            youtubePlayer.seekToPosition(0)
+            youtubePlayer.playerPlay()
 //            youtubePlayer.playerPreviousVideo() // TODO: Metadata
         }
 
@@ -167,6 +176,8 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         }
     }
 
+
+
     fun startPlaybackWithVideoId(id: String) {
         videoIdOfCurrentVideo = id
         metadataManager.setVideoId(id)
@@ -191,6 +202,7 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         fun onPlaybackStarted()
         fun onPlaybackStoped()
         fun onPlaybackChanged(state: PlaybackStateCompat)
+
         // https://developer.android.com/reference/android/support/v4/media/session/PlaybackStateCompat.Builder.html#addCustomAction(java.lang.String, java.lang.String, int)
         // https://github.com/googlesamples/android-UniversalMusicPlayer/blob/67a35ffefff9cd1c04089284492caa73dde8cae3/mobile/src/main/java/com/example/android/uamp/playback/PlaybackManager.java
     }

@@ -1,11 +1,17 @@
 package ch.abertschi.notiplay.player
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.os.IBinder
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
+import java.util.concurrent.TimeUnit
 
 /**
  * Created by abertschi on 10.02.18.
@@ -41,6 +47,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
         if (intent != null && intent.action == ACTION_INIT_WITH_ID) {
             intent.getStringExtra(EXTRA_VIDEO_ID)?.run {
                 playVideoId(this)
+                checkConnectivity() // TODO
             }
         }
         return START_NOT_STICKY
@@ -74,4 +81,26 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     override fun onVideoIdChanged(id: String) {
         playVideoId(id)
     }
+
+    fun checkConnectivity() {
+        Observable.just(true)
+                .delay(5, TimeUnit.SECONDS)
+                .repeat()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread()).map {
+            if (isNetworkAvailable()) {
+                playbackNotifications.showMessageNoConnectivity(false)
+            } else {
+                playbackNotifications.showMessageNoConnectivity(true)
+            }
+        }.subscribe()
+
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetworkInfo = connectivityManager.activeNetworkInfo
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected
+    }
+
 }

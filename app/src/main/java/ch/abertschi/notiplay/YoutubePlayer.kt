@@ -26,6 +26,11 @@ import kotlin.collections.HashMap
  */
 
 class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
+
+    override fun resetPlayer() {
+        execJs("window.location.reload( true );")
+    }
+
     override fun toggleVisible() {
         webView?.toggleVisible()
     }
@@ -245,6 +250,8 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
                 return WebResourceResponse("bgsType", "someEncoding", null)
             }
 
+            info { "#intercepting: " + url }
+
             val address = url.trim { it <= ' ' }
             var origin = if (url.startsWith(googleYtV3VideoApi)) {
                 "null"
@@ -260,9 +267,9 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
                         .addHeader("Access-Control-Allow-Credentials",
                                 "false")
                         .addHeader("user-agent",
-                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) " +
-                                        "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                                        "Chrome/63.0.3239.132 Safari/537.36")
+                                "Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) " +
+                                        "AppleWebKit/536.26 (KHTML, like Gecko) " +
+                                        "Version/6.0 Mobile/10A5376e Safari/8536.25")
                         .build()
 
                 val response = httpClient.newCall(request).execute()

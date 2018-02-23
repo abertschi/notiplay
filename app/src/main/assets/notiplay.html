@@ -57,7 +57,6 @@
        playIndex: 0,
        isPlaybackInHistory: false,
        isLoopVideo: false,
-       isFullscreen: false,
        isLoadingEndOfVideoAction: false
      };
      
@@ -73,7 +72,6 @@
        rel: 0,
        fs: 0,
      }
-
      
      function onYouTubeIframeAPIReady() {
        player = new YT.Player('notiplay-iframe', {
@@ -85,7 +83,6 @@
            'onError': onError,
            
          }
-         /* playerVars: playerVars*/
        });
      }
      
@@ -95,17 +92,10 @@
          c();
        });
        playerStats.readyCallables = [];
-       /* notiStorage.isLoadingEndOfVideoAction = false*/
 
        if (NotiPlay) {
          NotiPlay.onPlayerReady();
        }
-
-       /* setTimeout(function(){
-        *   console.log('nowww');
-        * }, 10000);
-        * */
-
        
        setInterval(function(){
          var t = player.getCurrentTime();
@@ -118,21 +108,9 @@
 
          if (t >= totalTime && totalTime != 0) {
            console.log("end-of-video reached");
-
-           /* if (!notiStorage.isLoadingEndOfVideoAction) {*/
-           /* notiStorage.isLoadingEndOfVideoAction = true;*/
-           
-           if (notiStorage.isLoopVideo) {
-             console.log("start-of-video");
-             seekTo(0);
-             playerPlay();
-           } else {
-             console.log("jump to next video");
-             playerNextVideo(function() {
-               /* notiStorage.isLoadingEndOfVideoAction = false;*/
-             });
+           if(NotiPlay) {
+             Notiplay.onPlaybackEndReached();
            }
-           /* }*/
          }
        }, 1000);
      }
@@ -195,9 +173,6 @@
        if (!seconds) {
          seconds = 30;
        }
-
-       toggleFullscreen();
-
        try{
          var t = player.getCurrentTime();
          t = t + seconds;
@@ -322,39 +297,10 @@
      }
 
      function setLoopVideo(isLoop) {
-       notiStorage.isLoopVideo = isLoop;
+
      }
 
      function toggleFullscreen() {
-       if (notiStorage.isFullscreen) exitFullscreen();
-       else requestFullscreen();
-     }
-
-     function requestFullscreen() {
-       notiStorage.isFullscreen = true;
-       var e = document.getElementById("notiplay-iframe");
-       if (e.requestFullscreen) {
-         e.requestFullscreen();
-       } else if (e.webkitRequestFullscreen) {
-         e.webkitRequestFullscreen();
-       } else if (e.mozRequestFullScreen) {
-         e.mozRequestFullScreen();
-       } else if (e.msRequestFullscreen) {
-         e.msRequestFullscreen();
-       }
-     }
-
-     function exitFullscreen() {
-       notiStorage.isFullscreen = false;
-       if (document.exitFullscreen) {
-         document.exitFullscreen();
-       } else if (document.msExitFullscreen) {
-         document.msExitFullscreen();
-       } else if (document.mozCancelFullScreen) {
-         document.mozCancelFullScreen();
-       } else if (document.webkitExitFullscreen) {
-         document.webkitExitFullscreen();
-       }
      }
      
      function _runWhenPlayerReady(callable) {

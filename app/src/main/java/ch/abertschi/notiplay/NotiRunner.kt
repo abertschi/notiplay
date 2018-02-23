@@ -27,6 +27,8 @@ import kotlin.concurrent.timerTask
  */
 
 class NotiRunner : Service(), NotiObserver {
+    override fun onPlaybackEndReached() {
+    }
 
     private var drawer: YoutubePlayer? = null
     private var videoId: String? = null

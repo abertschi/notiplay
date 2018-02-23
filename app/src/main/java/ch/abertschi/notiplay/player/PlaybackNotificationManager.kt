@@ -43,9 +43,10 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     }
 
     private enum class PlayPauseAction {
-        PLAY, PAUSE
+        PLAY, PAUSE, BUFFER
     }
 
+    private var noConnectivity = false
     private var currentPlayPauseAction: PlayPauseAction = PlayPauseAction.PLAY
     private var currentMetadata: MediaMetadataCompat? = null
     private var currentPlaybackState: PlaybackStateCompat? = null
@@ -84,6 +85,9 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                             }
                             PlaybackStateCompat.STATE_PLAYING -> {
                                 currentPlayPauseAction = PlayPauseAction.PAUSE
+                            }
+                            PlaybackStateCompat.STATE_BUFFERING -> {
+                                currentPlayPauseAction = PlayPauseAction.BUFFER
                             }
                         }
                         createNotification()?.run {
@@ -259,6 +263,10 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         return null
     }
 
+    fun showMessageNoConnectivity(status: Boolean) {
+        this.noConnectivity = status
+    }
+
     private fun generateAction(icon: Int, title: String, intent: PendingIntent): NotificationCompat.Action {
         return NotificationCompat.Action.Builder(icon, title, intent).build()
     }
@@ -267,7 +275,8 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         builder.addAction(generateAction(R.mipmap.ic_picture_in_picture_black_18dp,
                 "Video Player", showVideoPlayerIntent))
         builder.addAction(generateAction(R.mipmap.ic_skip_previous_black_36dp, "Previous", previousIntent))
-        if (currentPlayPauseAction == PlayPauseAction.PLAY) {
+        if (currentPlayPauseAction == PlayPauseAction.PLAY
+                || currentPlayPauseAction == PlayPauseAction.BUFFER) {
             builder.addAction(generateAction(R.mipmap.ic_play_arrow_black_36dp, "Play", playIntent))
         } else {
             builder.addAction(generateAction(R.mipmap.ic_pause_black_36dp, "Pause", pauseIntent))
@@ -277,13 +286,14 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     }
 
     private fun getPlaybackStateText(): String {
+        if (noConnectivity) return "no connection"
         if (currentPlaybackState == null) return "loading"
         return when (currentPlaybackState!!.state) {
             PlaybackStateCompat.STATE_PLAYING -> "playing"
             PlaybackStateCompat.STATE_PAUSED -> "paused"
             PlaybackStateCompat.STATE_BUFFERING -> "buffering"
             PlaybackStateCompat.STATE_CONNECTING -> "connecting"
-            else -> "loading"
+            else -> "buffering"
         }
     }
 

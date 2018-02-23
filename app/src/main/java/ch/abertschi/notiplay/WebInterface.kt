@@ -41,6 +41,11 @@ class WebInterface(val acontext: Context, var observers: List<NotiObserver>) {
     }
 
     @JavascriptInterface
+    fun onPlaybackEndReached() {
+        observers.forEach { it.onPlaybackEndReached()}
+    }
+
+    @JavascriptInterface
     fun onPlaybackPositionUpdate(seconds: Int) {
         observers.forEach { it.onPlaybackPositionUpdate(seconds) }
     }

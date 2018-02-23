@@ -8,7 +8,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import ch.abertschi.notiplay.NotiObserver
-import ch.abertschi.notiplay.YoutubePlayer
+import ch.abertschi.notiplay.playback.yt.YoutubePlayer
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info

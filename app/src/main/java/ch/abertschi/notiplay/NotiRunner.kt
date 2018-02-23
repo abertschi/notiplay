@@ -14,6 +14,7 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import android.widget.Toast
+import ch.abertschi.notiplay.playback.yt.YoutubePlayer
 import java.util.*
 import kotlin.concurrent.timerTask
 

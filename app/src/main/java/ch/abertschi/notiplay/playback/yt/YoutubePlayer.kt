@@ -1,4 +1,4 @@
-package ch.abertschi.notiplay
+package ch.abertschi.notiplay.playback.yt
 
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
@@ -11,6 +11,10 @@ import android.os.Looper.getMainLooper
 import android.support.v4.content.ContextCompat.startActivity
 import android.view.WindowManager
 import android.webkit.*
+import ch.abertschi.notiplay.NotiObserver
+import ch.abertschi.notiplay.NotiRunnable
+import ch.abertschi.notiplay.view.FloatingWindow
+import ch.abertschi.notiplay.view.HorizontalFullscreenActivity
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jetbrains.anko.AnkoLogger
@@ -32,7 +36,7 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
     }
 
     override fun toggleVisible() {
-        webView?.toggleVisible()
+        floatingWindow?.toggleVisible()
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -57,7 +61,8 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 
 
     var windowManager: WindowManager? = null
-    var webView: NotiplayWebview? = null
+    var floatingWindow: FloatingWindow? = null
+    var youtubeWebView: YoutubeWebView? = null
     var debug: Boolean = true
 
 
@@ -65,23 +70,28 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
     fun startWebView() {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-        this.webView = NotiplayWebview(context)
-        webView?.onFullScreenAction = this::requestFullScreen
-        webView?.onFloatingWindowAction = this::requestFloatingWindow
+        this.floatingWindow = FloatingWindow(context)
 
-        webView?.let {
+
+
+        floatingWindow?.onFullScreenAction = this::requestFullScreen
+        floatingWindow?.onFloatingWindowAction = this::requestFloatingWindow
+
+        youtubeWebView = YoutubeWebView(this.context)
+        youtubeWebView?.let {
             it.webViewClient = webViewClient
             it.addJavascriptInterface(WebInterface(context, observers), "NotiPlay")
             configureWebView(it.settings)
-            it.loadLayout()
             it.setInitialScale(1)
             it.loadData(assetToString(webAsset), "text/html", null)
         }
+        floatingWindow?.loadLayout(youtubeWebView!!)
+
     }
 
     fun stopWebView() {
-        windowManager?.removeView(webView)
-        webView?.post { webView?.destroy() }
+        windowManager?.removeView(floatingWindow)
+        floatingWindow?.post { youtubeWebView?.destroy() }
         onCloseCallback?.invoke()
     }
 
@@ -118,7 +128,7 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
     fun execJs(command: String) {
         handler.post {
             println("javascript:${command}")
-            webView!!.loadUrl("javascript:${command}")
+            youtubeWebView!!.loadUrl("javascript:${command}")
         }
     }
 
@@ -155,7 +165,7 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 
     fun requestFullScreen() {
         isFullScreen = true
-        webView?.requestFullScreen()
+        floatingWindow?.requestFullScreen()
         val dialogIntent = Intent(context, HorizontalFullscreenActivity::class.java)
         dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         dialogIntent.action = "request_fullscreen"
@@ -165,7 +175,7 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
     }
 
     override fun confirmFullscreen() {
-        webView?.confirmFullScreen()
+        floatingWindow?.confirmFullScreen()
     }
 
     override fun toggleWebview() {
@@ -173,15 +183,15 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 
 
     fun requestFloatingWindow() {
-//        webView?.requestFullScreen
+//        floatingWindow?.requestFullScreen
         isFullScreen = false
         println("state is: " + isFullScreen)
         println("confirm floating window")
-        webView?.requestFloatingWindow()
+        floatingWindow?.requestFloatingWindow()
     }
 
     fun confirmFloatingWindow() {
-        webView?.confirmFloatingWindow()
+        floatingWindow?.confirmFloatingWindow()
     }
 
 
@@ -231,7 +241,7 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
                 val handler = Handler(getMainLooper())
                 handler.post {
                     info { "stop loading " + url }
-                    webView?.stopLoading()
+                    youtubeWebView?.stopLoading()
                     blockingRequests = false
                 }
                 return null

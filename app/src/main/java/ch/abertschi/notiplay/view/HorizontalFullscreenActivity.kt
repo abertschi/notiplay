@@ -1,10 +1,12 @@
-package ch.abertschi.notiplay
+package ch.abertschi.notiplay.view
 
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
+import ch.abertschi.notiplay.NotiRunner
+import ch.abertschi.notiplay.R
 
 /**
  * Created by abertschi on 04.02.18.

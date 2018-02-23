@@ -30,7 +30,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".HorizontalFullscreenActivity"
+        <activity android:name=".view.HorizontalFullscreenActivity"
                   android:screenOrientation="landscape"
                   android:configChanges="screenSize|keyboardHidden"
                   android:excludeFromRecents="true"

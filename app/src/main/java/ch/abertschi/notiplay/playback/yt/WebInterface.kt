@@ -1,7 +1,8 @@
-package ch.abertschi.notiplay
+package ch.abertschi.notiplay.playback.yt
 
 import android.content.Context
 import android.webkit.JavascriptInterface
+import ch.abertschi.notiplay.NotiObserver
 
 /**
  * Created by abertschi on 25.01.18.

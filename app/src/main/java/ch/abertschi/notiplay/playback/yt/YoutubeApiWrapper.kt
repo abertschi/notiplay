@@ -1,4 +1,4 @@
-package ch.abertschi.notiplay.player
+package ch.abertschi.notiplay.playback.yt
 
 import com.github.kittinunf.fuel.android.extension.responseJson
 import com.github.kittinunf.fuel.httpGet
@@ -70,7 +70,7 @@ class YoutubeApiWrapper : AnkoLogger {
     }
 
     private fun createMetadataFromSnippet(snippet: JSONObject, videoId: String):
-            YoutubeApiWrapper.YoutubeVideoMetadata {
+            YoutubeVideoMetadata {
         val thumbnails = snippet.get("thumbnails") as JSONObject
         val thumbnailUrl = if (thumbnails.has("maxres")) {
             thumbnails.getJSONObject("maxres").getString("url")

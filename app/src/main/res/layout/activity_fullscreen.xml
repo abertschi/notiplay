@@ -6,7 +6,7 @@
     android:layout_margin="0dp"
     android:padding="0dp"
     android:layout_height="match_parent"
-    tools:context="ch.abertschi.notiplay.HorizontalFullscreenActivity"
+    tools:context="ch.abertschi.notiplay.view.HorizontalFullscreenActivity"
     android:background="@android:color/black">
 
 </RelativeLayout>

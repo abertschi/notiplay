@@ -1,4 +1,4 @@
-package ch.abertschi.notiplay
+package ch.abertschi.notiplay.view
 
 import android.animation.LayoutTransition
 import android.animation.ValueAnimator
@@ -12,7 +12,8 @@ import android.view.*
 import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 import android.view.animation.Animation
 import android.view.animation.Transformation
-import android.webkit.WebView
+import android.widget.FrameLayout
+import android.widget.LinearLayout
 import org.jetbrains.anko.padding
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -22,10 +23,10 @@ import kotlin.math.roundToInt
  * Created by abertschi on 04.02.18.
  * // todo: replace this by generic view which contains webview (or anything else)
  */
-class NotiplayWebview(context: Context) : WebView(context) {
+class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
 
     val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    var showFloatingWindow: Boolean = true
+    private var showFloatingWindow: Boolean = true
 
     private var allowScroll: Boolean = false
     private var scaleFactor = 1f
@@ -57,13 +58,10 @@ class NotiplayWebview(context: Context) : WebView(context) {
     var onFloatingWindowAction: (() -> Unit)? = null
     var onFullScreenAction: (() -> Unit)? = null
 
+    private lateinit var currentChildView: View
+
     var isAlphaActive = false
 
-
-//    fun toggleFullScreen() {
-//        if (isFullScreen) launchFloatingWindow()
-//        else launchFullScreen()
-//    }
 
     fun toggleVisible() {
         makeVisible(!showFloatingWindow)
@@ -83,7 +81,98 @@ class NotiplayWebview(context: Context) : WebView(context) {
         windowManager.updateViewLayout(this, layoutParams)
     }
 
-    fun loadLayout() {
+    init {
+        super.setOnInterceptTouchEventListener(object : OnInterceptTouchEventListener {
+            override fun onInterceptTouchEvent(view: InterceptTouchFrameLayout?, ev: MotionEvent?,
+                                               disallowIntercept: Boolean): Boolean {
+                return true
+            }
+
+            override fun onTouchEvent(view: InterceptTouchFrameLayout?, event: MotionEvent?): Boolean {
+
+                when (event!!.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        val t = System.currentTimeMillis()
+                        val delta = t - lastTapMs
+                        if (delta < doubleTapThresholdMs) {
+                            isFullScreen = if (!isFullScreen) {
+                                onFullScreenAction?.invoke()
+                                true
+                            } else {
+                                onFloatingWindowAction?.invoke()
+                                true
+                            }
+                            return true
+                        }
+                        lastTapMs = t
+                        lastTouchX = event.x
+                        lastTouchY = event.y
+                        println(getViewCorrectedViewPortSize().first)
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val w = layoutParams!!.width
+                        val h = layoutParams!!.height
+                        val screenSize = getViewCorrectedViewPortSize()
+                        val padding = 0
+
+
+                        isAlphaActive = false
+                        if (!isFullScreen) {
+                            isAlphaActive = true
+                            if (event.rawX - event.x <= padding) {
+                                val a = (event.x) / w
+                                this@FloatingWindow.alpha = a
+                            } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
+                                            <= padding)) {
+                                val a = (w - event.x) / w
+                                println("got " + a)
+                                this@FloatingWindow.alpha = a
+
+                            } else if (event.rawY - event.y <= padding) {
+                                this@FloatingWindow.alpha = event.y / h
+
+                            } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
+                                            <= padding)) {
+                                this@FloatingWindow.alpha = (h - event.y) / h
+                            } else {
+                                this@FloatingWindow.alpha = 1f
+                                isAlphaActive = false
+                            }
+                        }
+
+                        if (actionScalingActive) {
+                            return true
+                        } else {
+                            layoutParams?.y = (event.rawY - lastTouchY).toInt()
+                            layoutParams?.x = (event.rawX - lastTouchX).toInt()
+                            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+                        }
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        if (isAlphaActive) {
+                            makeVisible(false)
+                        } else {
+                            alignFloatingWindow()
+                        }
+
+                        actionScalingActive = false
+                    }
+                }
+                return !isFullScreen
+            }
+
+        })
+    }
+
+
+    fun setChildWindow(view: View) {
+        currentChildView = view
+        this.removeAllViews()
+        this.addView(view)
+        windowManager.updateViewLayout(this, layoutParams)
+    }
+
+    fun loadLayout(childView: View) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             layoutParams = WindowManager.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -136,79 +225,12 @@ class NotiplayWebview(context: Context) : WebView(context) {
 
         this.layoutTransition = LayoutTransition()
 
-        setOnTouchListener { v, event ->
+        childView.layoutParams = FrameLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT)
 
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    val t = System.currentTimeMillis()
-                    val delta = t - lastTapMs
-                    if (delta < doubleTapThresholdMs) {
-                        isFullScreen = if (!isFullScreen) {
-                            onFullScreenAction?.invoke()
-                            true
-                        } else {
-                            onFloatingWindowAction?.invoke()
-                            true
-                        }
-                        return@setOnTouchListener true
-                    }
-                    lastTapMs = t
-                    lastTouchX = event.x
-                    lastTouchY = event.y
-                    println(getViewCorrectedViewPortSize().first)
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val w = layoutParams!!.width
-                    val h = layoutParams!!.height
-                    val screenSize = getViewCorrectedViewPortSize()
-                    val padding = 0
-
-
-                    isAlphaActive = false
-//                    if (!isFullScreen) {
-//                        isAlphaActive = true
-//                        if (event.rawX - event.x <= padding) {
-//                            val a = (event.x) / w
-//                            this@NotiplayWebview.alpha = a
-//                        } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
-//                                        <= padding)) {
-//                            val a = (w - event.x) / w
-//                            println("got " + a)
-//                            this@NotiplayWebview.alpha = a
-//
-//                        } else if (event.rawY - event.y <= padding) {
-//                            this@NotiplayWebview.alpha = event.y / h
-//
-//                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
-//                                        <= padding)) {
-//                            this@NotiplayWebview.alpha = (h - event.y) / h
-//                        } else {
-//                            this@NotiplayWebview.alpha = 1f
-//                            isAlphaActive = false
-//                        }
-//                    }
-
-                    if (actionScalingActive) {
-                        return@setOnTouchListener true
-                    } else {
-                        layoutParams?.y = (event.rawY - lastTouchY).toInt()
-                        layoutParams?.x = (event.rawX - lastTouchX).toInt()
-                        windowManager.updateViewLayout(this@NotiplayWebview, layoutParams)
-                    }
-                }
-                MotionEvent.ACTION_UP -> {
-                    if (isAlphaActive){
-                        makeVisible(false)
-//                        Toast.makeText(this.context.applicationContext, "Floating Window disabled", Toast.LENGTH_SHORT)
-                    } else {
-                        alignFloatingWindow()
-                    }
-
-                    actionScalingActive = false
-                }
-            }
-            return@setOnTouchListener !isFullScreen
-        }
+        this.addView(childView)
+        currentChildView = childView
         windowManager.addView(this, layoutParams)
         alignFloatingWindow()
     }
@@ -258,7 +280,7 @@ class NotiplayWebview(context: Context) : WebView(context) {
             layoutParams?.run {
                 x = actionUpX + dx.roundToInt()
                 y = actionUpY + dy.roundToInt()
-                windowManager.updateViewLayout(this@NotiplayWebview, this)
+                windowManager.updateViewLayout(this@FloatingWindow, this)
             }
         }
         anim.start()
@@ -339,7 +361,8 @@ class NotiplayWebview(context: Context) : WebView(context) {
     public override fun overScrollBy(deltaX: Int, deltaY: Int, scrollX: Int, scrollY: Int,
                                      scrollRangeX: Int, scrollRangeY: Int, maxOverScrollX: Int,
                                      maxOverScrollY: Int, isTouchEvent: Boolean): Boolean {
-        if (allowScroll) return super.overScrollBy(deltaX, deltaY, scrollX, scrollY, scrollRangeX, scrollRangeY, maxOverScrollX, maxOverScrollY, isTouchEvent)
+        if (allowScroll) return super.overScrollBy(deltaX, deltaY, scrollX, scrollY,
+                scrollRangeX, scrollRangeY, maxOverScrollX, maxOverScrollY, isTouchEvent)
         return true
     }
 
@@ -350,6 +373,15 @@ class NotiplayWebview(context: Context) : WebView(context) {
     override fun computeScroll() {
         if (allowScroll) return super.computeScroll()
 
+    }
+
+    private fun getStatusBarHeight(): Int {
+        var result = 0
+        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (resourceId > 0) {
+            result = resources.getDimensionPixelSize(resourceId)
+        }
+        return result
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -364,7 +396,6 @@ class NotiplayWebview(context: Context) : WebView(context) {
 
 
     }
-
 
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
 
@@ -393,13 +424,13 @@ class NotiplayWebview(context: Context) : WebView(context) {
             println("scale ended")
             println("${layoutParams?.width} / ${layoutParams?.height}")
 
-//            this@NotiplayWebview.scaleX = 1f
-//            this@NotiplayWebview.scaleY = 1f
-            this@NotiplayWebview.invalidate()
+//            this@FloatingWindow.scaleX = 1f
+//            this@FloatingWindow.scaleY = 1f
+            this@FloatingWindow.invalidate()
             layoutParams?.run {
                 //                width =
 //                height =
-//                windowManager.updateViewLayout(this@NotiplayWebview, layoutParams)
+//                windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
                 println("${layoutParams?.width} / ${layoutParams?.height}")
 //                scaleX = 1f
 //                scaleY = 1f
@@ -419,34 +450,26 @@ class NotiplayWebview(context: Context) : WebView(context) {
             var newWidth = (storedLayoutParamsWidth * scaleFactor).toInt()
             var newHeight = (newWidth * widthScale).toInt()
 
-            this@NotiplayWebview?.layoutParams?.run {
+            this@FloatingWindow?.layoutParams?.run {
 
 
                 width = newWidth
                 height = newHeight
-                windowManager.updateViewLayout(this@NotiplayWebview, this)
+                windowManager.updateViewLayout(this@FloatingWindow, this)
             }
 
-//            this@NotiplayWebview.scaleX = scaleFactor
-//            this@NotiplayWebview.scaleY = scaleFactor
-            this@NotiplayWebview.pivotX = 0f
-            this@NotiplayWebview.pivotY = 0f
+//            this@FloatingWindow.scaleX = scaleFactor
+//            this@FloatingWindow.scaleY = scaleFactor
+            this@FloatingWindow.pivotX = 0f
+            this@FloatingWindow.pivotY = 0f
             println(scaleFactor)
             return true
         }
     }
 
 
-    private fun getStatusBarHeight(): Int {
-        var result = 0
-        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-        if (resourceId > 0) {
-            result = resources.getDimensionPixelSize(resourceId)
-        }
-        return result
-    }
-
-    inner class ResizeAnimation(var view: View, val targetHeight: Int, var startHeight: Int, var targetWidth: Int, var startWidth: Int) : Animation() {
+    inner class ResizeAnimation(var view: View, val targetHeight: Int, var startHeight: Int,
+                                var targetWidth: Int, var startWidth: Int) : Animation() {
 
         override fun applyTransformation(interpolatedTime: Float, t: Transformation) {
             val newHeight = (startHeight + targetHeight * interpolatedTime).toInt()
@@ -467,7 +490,7 @@ class NotiplayWebview(context: Context) : WebView(context) {
     }
 
     //    val targetX: Int, var startX: Int, var targetY: Int, var startY: Int
-    inner class MoveAnimation(var view: NotiplayWebview) : Animation() {
+    inner class MoveAnimation(var view: FloatingWindow) : Animation() {
 
         override fun applyTransformation(interpolatedTime: Float, t: Transformation) {
             println("apply trns")
@@ -492,14 +515,3 @@ class NotiplayWebview(context: Context) : WebView(context) {
         }
     }
 }
-
-
-//    override fun onDraw(canvas: Canvas?) {
-//        super.onDraw(canvas)
-//
-//        canvas?.save()
-//        canvas?.scale(scaleFactor, scaleFactor)
-//        canvas?.restore()
-//        println("drawing canvas " + scaleFactor)
-//
-//    }

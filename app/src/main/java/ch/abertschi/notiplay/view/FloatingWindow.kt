@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
  * Created by abertschi on 04.02.18.
  * // todo: replace this by generic view which contains webview (or anything else)
  */
-class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
+class FloatingWindow(context: Context, val controller: FloatingWindowController) : InterceptTouchFrameLayout(context) {
 
     val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var showFloatingWindow: Boolean = true
@@ -42,7 +42,7 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
     private var storedLayoutParamsHeight: Int = 0
     private var actionScalingActive = false
 
-    private var isFullScreen: Boolean = false
+
 
     private var lastTouchX: Float = 0f
     private var lastTouchY: Float = 0f
@@ -55,8 +55,8 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
 
     private val widthScale = (864.0 / 1652.0)
 
-    var onFloatingWindowAction: (() -> Unit)? = null
-    var onFullScreenAction: (() -> Unit)? = null
+    //    var onFloatingWindowAction: (() -> Unit)? = null
+    var onDoubleTab: (() -> Unit)? = null
 
     private lateinit var currentChildView: View
 
@@ -66,6 +66,7 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
     fun toggleVisible() {
         makeVisible(!showFloatingWindow)
     }
+
 
     fun makeVisible(state: Boolean) {
         showFloatingWindow = state
@@ -83,87 +84,7 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
     }
 
     init {
-        super.setOnInterceptTouchEventListener(object : OnInterceptTouchEventListener {
-            override fun onInterceptTouchEvent(view: InterceptTouchFrameLayout?, ev: MotionEvent?,
-                                               disallowIntercept: Boolean): Boolean {
-                return true
-            }
-
-            override fun onTouchEvent(view: InterceptTouchFrameLayout?, event: MotionEvent?): Boolean {
-
-                when (event!!.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        val t = System.currentTimeMillis()
-                        val delta = t - lastTapMs
-                        if (delta < doubleTapThresholdMs) {
-                            isFullScreen = if (!isFullScreen) {
-                                onFullScreenAction?.invoke()
-                                true
-                            } else {
-                                onFloatingWindowAction?.invoke()
-                                true
-                            }
-                            return true
-                        }
-                        lastTapMs = t
-                        lastTouchX = event.x
-                        lastTouchY = event.y
-                        println(getViewCorrectedViewPortSize().first)
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        val w = layoutParams!!.width
-                        val h = layoutParams!!.height
-                        val screenSize = getViewCorrectedViewPortSize()
-                        val padding = 0
-
-
-
-                        isAlphaActive = false
-                        if (!isFullScreen) {
-                            isAlphaActive = true
-                            if (event.rawX - event.x <= padding) {
-                                val a = (event.x) / w
-                                this@FloatingWindow.alpha = a
-                            } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
-                                            <= padding)) {
-                                val a = (w - event.x) / w
-                                println("got " + a)
-                                this@FloatingWindow.alpha = a
-
-                            } else if (event.rawY - event.y <= padding) {
-                                this@FloatingWindow.alpha = event.y / h
-
-                            } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
-                                            <= padding)) {
-                                this@FloatingWindow.alpha = (h - event.y) / h
-                            } else {
-                                this@FloatingWindow.alpha = 1f
-                                isAlphaActive = false
-                            }
-                        }
-
-                        if (actionScalingActive) {
-                            return true
-                        } else {
-                            layoutParams?.y = (event.rawY - lastTouchY).toInt()
-                            layoutParams?.x = (event.rawX - lastTouchX).toInt()
-                            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
-                        }
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        if (isAlphaActive) {
-                            makeVisible(false)
-                        } else {
-                            alignFloatingWindow()
-                        }
-
-                        actionScalingActive = false
-                    }
-                }
-                return !isFullScreen
-            }
-
-        })
+        super.setOnInterceptTouchEventListener(TouchListener())
     }
 
 
@@ -172,6 +93,10 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
         this.removeAllViews()
         this.addView(view)
         windowManager.updateViewLayout(this, layoutParams)
+    }
+
+    fun stopView() {
+        windowManager?.removeView(this)
     }
 
     fun loadLayout(childView: View) {
@@ -300,14 +225,30 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
     }
 
 
-    fun requestFullScreen() {
+    fun storeLayoutParams() {
         storedLayoutParamsX = layoutParams!!.x
         storedLayoutParamsY = layoutParams!!.y
         storedLayoutParamsWidth = layoutParams!!.width
         storedLayoutParamsHeight = layoutParams!!.height
     }
 
-    fun confirmFullScreen() {
+    fun setSizeToHalfScreen() {
+        val size = getViewCorrectedViewPortSize()
+
+        this.allowScroll = false
+
+        layoutParams?.x = 0
+        layoutParams?.y = 0
+        layoutParams?.height = size.second / 3
+        layoutParams?.width = size.first
+        layoutParams?.verticalMargin = 0f
+        layoutParams?.horizontalMargin = 0f
+        this.scaleX = 1f
+        this.scaleY = 1f
+
+    }
+
+    fun setSizeToFullScreen() {
         println("confirmed fullscreen")
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val displayMetrics = DisplayMetrics()
@@ -316,7 +257,6 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
         val width = displayMetrics.heightPixels
         val height = displayMetrics.widthPixels
 
-        isFullScreen = true
         this.allowScroll = true
 
         layoutParams?.x = 0
@@ -331,13 +271,9 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
         windowManager.updateViewLayout(this, layoutParams)
     }
 
-    fun requestFloatingWindow() {
 
-    }
-
-    fun confirmFloatingWindow() {
+    fun setSizeToFloatingWindow() {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        isFullScreen = false
         allowScroll = false
 
 //        val i = Intent(context, HorizontalFullscreenActivity::class.java)
@@ -408,10 +344,10 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
         override fun onDoubleTap(e: MotionEvent): Boolean {
             val x = e.x
             val y = e.y
-            if (!isFullScreen) {
-                isFullScreen = true
-                onFullScreenAction?.invoke()
-            }
+
+
+            onDoubleTab?.invoke()
+
             return true
         }
     }
@@ -442,7 +378,7 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
 
         override fun onScale(detector: ScaleGestureDetector): Boolean {
 //            return false
-            if (isFullScreen) return false
+            if (controller.isFullscreen()) return false
             actionScalingActive = true
             scaleFactor *= detector.scaleFactor
             scaleFactor = Math.max(0.5f, Math.min(scaleFactor, 1.0f))
@@ -515,5 +451,86 @@ class FloatingWindow(context: Context) : InterceptTouchFrameLayout(context) {
             println("###WILLCHANGE")
             return true
         }
+    }
+
+    private inner class TouchListener : OnInterceptTouchEventListener {
+        override fun onInterceptTouchEvent(view: InterceptTouchFrameLayout?, ev: MotionEvent?,
+                                           disallowIntercept: Boolean): Boolean {
+            return true
+        }
+
+        override fun onTouchEvent(view: InterceptTouchFrameLayout?, event: MotionEvent?): Boolean {
+
+            when (event!!.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    val t = System.currentTimeMillis()
+                    val delta = t - lastTapMs
+                    if (delta < doubleTapThresholdMs) {
+                        onDoubleTab?.invoke()
+
+                        true
+
+                        return true
+                    }
+                    lastTapMs = t
+                    lastTouchX = event.x
+                    lastTouchY = event.y
+                    println(getViewCorrectedViewPortSize().first)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val w = layoutParams!!.width
+                    val h = layoutParams!!.height
+                    val screenSize = getViewCorrectedViewPortSize()
+                    val padding = 0
+
+
+
+                    isAlphaActive = false
+                    if (!controller.isFullscreen() && controller.allowMoveOut) {
+                        isAlphaActive = true
+                        if (event.rawX - event.x <= padding) {
+                            val a = (event.x) / w
+                            this@FloatingWindow.alpha = a
+                        } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
+                                        <= padding)) {
+                            val a = (w - event.x) / w
+                            println("got " + a)
+                            this@FloatingWindow.alpha = a
+
+                        } else if (event.rawY - event.y <= padding) {
+                            this@FloatingWindow.alpha = event.y / h
+
+                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
+                                        <= padding)) {
+                            this@FloatingWindow.alpha = (h - event.y) / h
+                        } else {
+                            this@FloatingWindow.alpha = 1f
+                            isAlphaActive = false
+                        }
+                    }
+
+                    if (actionScalingActive) {
+                        return true
+                    } else {
+                        layoutParams?.y = (event.rawY - lastTouchY).toInt()
+                        layoutParams?.x = (event.rawX - lastTouchX).toInt()
+                        windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (isAlphaActive) {
+                        makeVisible(false)
+                    } else {
+                        if (controller?.allowPositionCorrection) {
+                            alignFloatingWindow()
+                        }
+                    }
+
+                    actionScalingActive = false
+                }
+            }
+            return !controller.isFullscreen()
+        }
+
     }
 }

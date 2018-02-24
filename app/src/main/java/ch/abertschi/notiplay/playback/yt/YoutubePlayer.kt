@@ -2,16 +2,14 @@ package ch.abertschi.notiplay.playback.yt
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.os.Handler
 import android.os.Looper
-import android.support.v4.content.ContextCompat.startActivity
+import android.view.View
 import android.view.WindowManager
 import android.webkit.WebSettings
 import ch.abertschi.notiplay.NotiObserver
 import ch.abertschi.notiplay.NotiRunnable
 import ch.abertschi.notiplay.view.FloatingWindow
-import ch.abertschi.notiplay.view.HorizontalFullscreenActivity
 import org.jetbrains.anko.AnkoLogger
 import java.nio.charset.Charset
 import java.util.*
@@ -23,13 +21,22 @@ import java.util.*
 
 class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 
+
+    override fun getView(): View {
+        return youtubeWebView!!
+    }
+
+    override fun getViewController(): NotiRunnable.ViewController {
+        return null!!
+    }
+
     override fun resetPlayer() {
         execJs("window.location.reload( true );")
     }
 
-    override fun toggleVisible() {
-        floatingWindow?.toggleVisible()
-    }
+//    override fun toggleVisible() {
+//        floatingWindow?.toggleVisible()
+//    }
 
     private val handler = Handler(Looper.getMainLooper())
     private var observers: MutableList<NotiObserver> = ArrayList()
@@ -43,17 +50,23 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
     private var webViewClient: RequestHandler? = null
 
 
+    init {
+
+
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     fun startWebView() {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-        this.floatingWindow = FloatingWindow(context)
-
-        floatingWindow?.onFullScreenAction = this::requestFullScreen
-        floatingWindow?.onFloatingWindowAction = this::requestFloatingWindow
-
         youtubeWebView = YoutubeWebView(this.context)
         webViewClient = RequestHandler(youtubeWebView!!)
+
+//        this.floatingWindow = FloatingWindow(context)
+
+//        floatingWindow?.onDoubleTab = this::requestFullScreen
+//        floatingWindow?.onFloatingWindowAction = this::requestFloatingWindow
+
 
         youtubeWebView?.let {
             it.webViewClient = webViewClient
@@ -62,15 +75,10 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
             it.setInitialScale(1)
             it.loadData(assetToString(webAsset), "text/html", null)
         }
-        floatingWindow?.loadLayout(youtubeWebView!!)
 
     }
 
-    fun stopWebView() {
-        windowManager?.removeView(floatingWindow)
-        floatingWindow?.post { youtubeWebView?.destroy() }
-        onCloseCallback?.invoke()
-    }
+
 
     @SuppressLint("SetJavaScriptEnabled")
     fun configureWebView(webSettings: WebSettings) {
@@ -117,7 +125,12 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 
     override fun playerPlay() = execJs("playerPlay();")
 
-    override fun playerStop() = execJs("playerStop();")
+    override fun playerStop() {
+        execJs("playerStop();")
+//        stopWebView()
+        youtubeWebView?.destroy()
+//        webViewClient?.sto
+    }
 
     override fun seekForward(seek: Int) = execJs("seekForward(${seek});")
 
@@ -138,50 +151,6 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
         else execJs("setLoopVideo(false);")
     }
 
-    private var isFullScreen = false
-
-    fun requestFullScreen() {
-        isFullScreen = true
-        floatingWindow?.requestFullScreen()
-        val dialogIntent = Intent(context, HorizontalFullscreenActivity::class.java)
-        dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        dialogIntent.action = "request_fullscreen"
-//        dialogIntent.extras.putString("callback", this::class.java.toString())
-//        dialogIntent.extras.putString("call)
-        startActivity(context, dialogIntent, null)
-    }
-
-    override fun confirmFullscreen() {
-        floatingWindow?.confirmFullScreen()
-    }
-
-    override fun toggleWebview() {
-    }
-
-
-    fun requestFloatingWindow() {
-//        floatingWindow?.requestFullScreen
-        isFullScreen = false
-        println("state is: " + isFullScreen)
-        println("confirm floating window")
-        floatingWindow?.requestFloatingWindow()
-    }
-
-    fun confirmFloatingWindow() {
-        floatingWindow?.confirmFloatingWindow()
-    }
-
-
-    // can not be called by HorizontalView
-    // horizontalview needs to use request/confirm methods
-    override fun setFullscreen(state: Boolean) {
-//        throw UnsupportedOperationException()
-        if (state && !isFullScreen) {
-            requestFullScreen()
-        } else if (isFullScreen) {
-            requestFloatingWindow()
-        }
-    }
 
     override fun removeEventObserver(o: NotiObserver) {
         observers.remove(o)

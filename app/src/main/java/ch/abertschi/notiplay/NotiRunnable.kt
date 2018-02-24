@@ -1,9 +1,15 @@
 package ch.abertschi.notiplay
 
+import android.view.View
+
 /**
  * Created by abertschi on 25.01.18.
  */
 interface NotiRunnable {
+
+    interface ViewController {
+
+    }
 
     fun playVideoById(videoId: String, seekPosition: Int = 0)
 
@@ -12,6 +18,9 @@ interface NotiRunnable {
     fun playerPlay()
 
     fun playerStop()
+
+    fun getView(): View
+    fun getViewController(): ViewController
 
     fun playerNextVideo()
     fun playerPreviousVideo()
@@ -28,8 +37,8 @@ interface NotiRunnable {
     @Deprecated("")
     fun getPlaybackPosition()
 
-    @Deprecated("")
-    fun toggleWebview()
+//    @Deprecated("")
+//    fun toggleWebview()
 
     @Deprecated("")
     fun setLoopMode(loopWhenEnd: Boolean)
@@ -37,11 +46,11 @@ interface NotiRunnable {
     @Deprecated("")
     fun getVideoData()
 
-    @Deprecated("")
-    fun toggleVisible()
+//    @Deprecated("")
+//    fun toggleVisible()
 
-    @Deprecated("")
-    fun confirmFullscreen()
-    @Deprecated("")
-    fun setFullscreen(state: Boolean)
+//    @Deprecated("")
+//    fun confirmFullscreen()
+//    @Deprecated("")
+//    fun setFullscreen(state: Boolean)
 }

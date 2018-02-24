@@ -9,6 +9,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import ch.abertschi.notiplay.NotiObserver
 import ch.abertschi.notiplay.playback.yt.YoutubePlayer
+import ch.abertschi.notiplay.view.FloatingWindowController
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
@@ -22,6 +23,10 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
                       val playbackListener: PlaybackListener) : AnkoLogger {
 
     val youtubePlayer: YoutubePlayer = YoutubePlayer(playbackService)
+
+    var floatingWindowController: FloatingWindowController? = null
+
+
     var videoIdOfCurrentVideo: String? = "" // remove?
 
     val metadataManager = MetadataManager(metadataListener)
@@ -30,7 +35,6 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
 
     init {
         val youtubeCallback: NotiObserver = object : NotiObserver {
-
             var lastKnownPlaybackState: Long = PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN
 
             override fun onPlayerReady() {
@@ -151,8 +155,8 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         }
 
         override fun onStop() {
-            youtubePlayer.startWebView()
             youtubePlayer.playerStop()
+            floatingWindowController?.stopFloatingWindow()
             playbackListener.onPlaybackStoped()
         }
 
@@ -175,14 +179,13 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
                 youtubePlayer.playerPause()
 
             } else if (action == PlaybackNotificationManager.ACTION_SHOW_VIDEO_PLAYER) {
-                youtubePlayer?.toggleVisible()
+                floatingWindowController?.toggleVisible()
                 playbackService.sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 playbackService?.toast("Toggling playback window")
 
             }
         }
     }
-
 
     fun startPlaybackWithVideoId(id: String) {
         videoIdOfCurrentVideo = id
@@ -192,6 +195,10 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         if (!booted) {
             booted = true
             youtubePlayer.startWebView()
+            floatingWindowController = FloatingWindowController(playbackService, playbackService)
+            floatingWindowController?.startFloatingWindow(youtubePlayer.getView())
+
+//            youtubePlayer.startWebView()
         }
         youtubePlayer.playVideoById(id)
     }

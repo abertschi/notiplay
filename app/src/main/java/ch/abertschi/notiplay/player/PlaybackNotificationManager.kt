@@ -179,6 +179,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 ACTION_STOP -> {
                     transportControls?.stop()
                     stopNotifications()
+                    service.shutdownService()
                 }
                 ACTION_PREVIOUS -> transportControls?.skipToPrevious()
 

@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
-import ch.abertschi.notiplay.NotiRunner
+
 import ch.abertschi.notiplay.R
 
 /**
@@ -24,11 +24,7 @@ class HorizontalFullscreenActivity : Activity() {
     var intentQuitFullscreen: PendingIntent? = null
 
     init {
-        intentRequestFullscreen = PendingIntent.getBroadcast(this, REQUEST_CODE,
-                Intent(ACTION_REQUEST_FULLSCREEN), PendingIntent.FLAG_CANCEL_CURRENT)
 
-        intentQuitFullscreen = PendingIntent.getBroadcast(this, REQUEST_CODE,
-                Intent(ACTION_QUIT_FULLSCREEN), PendingIntent.FLAG_CANCEL_CURRENT)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,17 +45,18 @@ class HorizontalFullscreenActivity : Activity() {
     }
 
     fun confirmFullScreen() {
-        val intent = Intent(applicationContext, NotiRunner::class.java)
-        intent.action = NotiRunner.ACTION_CONFIRM_FULLSCREEN
+        val intent = Intent() //applicationContext, FloatingWindowController::class.java)
+        intent.action = FloatingWindowController.ACTION_CONFIRM_FULLSCREEN
         println("CONFIRM FULLSCREEN")
-        this.startService(intent)
+        this.sendBroadcast(intent)
+        println("SEND")
     }
 
     fun quitFullScreen() {
-        val intent = Intent(applicationContext, NotiRunner::class.java)
-        intent.action = NotiRunner.ACTION_REQUEST_FLOATING_WINDOW
+        val intent = Intent()
+        intent.action = FloatingWindowController.ACTION_REQUEST_FLOATING_WINDOW
         println("confirming fullscreen quit")
-        this.startService(intent)
+        this.sendBroadcast(intent)
         moveTaskToBack(true)
     }
 

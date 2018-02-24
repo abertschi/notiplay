@@ -10,8 +10,10 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
+
 
 /**
  * Created by abertschi on 10.02.18.
@@ -82,8 +84,20 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
         playVideoId(id)
     }
 
+    fun shutdownService() {
+        val myService = Intent(this, this::class.java)
+        stopService(myService)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        connCheck?.dispose()
+    }
+
+    private var connCheck: Disposable? = null
+
     fun checkConnectivity() {
-        Observable.just(true)
+        connCheck = Observable.just(true)
                 .delay(5, TimeUnit.SECONDS)
                 .repeat()
                 .subscribeOn(Schedulers.io())

@@ -133,7 +133,6 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
 
     fun startNotifications() {
         if (started) return
-
         val n = createNotification()
         val filter = IntentFilter()
         controller!!.registerCallback(mediaControllerCallback)

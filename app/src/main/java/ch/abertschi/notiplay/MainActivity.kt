@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         println("starting service")
-        foo()
+
 //        YoutubeApiWrapper().getVideoMetadata("-CzBYn7iRSI")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -106,7 +106,6 @@ class MainActivity : AppCompatActivity() {
         notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
         println(intent.action)
 
-        return
 
         if (intent.action == Intent.ACTION_SEND) {
             val videoId: String? = getVideoId(intent)

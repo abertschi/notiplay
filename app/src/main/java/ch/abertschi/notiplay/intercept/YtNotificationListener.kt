@@ -4,6 +4,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.media.session.MediaController
+import android.media.session.MediaSession
 import android.os.Build
 import android.os.IBinder
 import android.service.notification.NotificationListenerService
@@ -11,6 +13,7 @@ import android.service.notification.StatusBarNotification
 import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import ch.abertschi.notiplay.R
+import ch.abertschi.notiplay.playback.yt.YoutubeApiWrapper
 import org.jetbrains.anko.notificationManager
 
 
@@ -24,18 +27,41 @@ class YtNotificationListener : NotificationListenerService() {
         return super.onBind(intent)
     }
 
+    var youtube: YoutubeApiWrapper = YoutubeApiWrapper()
+
     var enabled = false
     private val CHANNEL_ID: String = "channid"
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         println("ON NOTIFICATION RECEIVED")
         println("status" + sbn.groupKey)
-        // Implement what you want here
 
-        if (sbn.key.contains("chrome") && enabled == false) {
-            enabled = true
-            YtAccessibilityService.that?.active = true
+        if (sbn.groupKey.toString().contains("com.android.chrome")) {
+            val extras = sbn.notification.extras
+            var playbackTile = extras.get("android.title")
+            var playbackUsername = extras.get("android.text")
+
+            for(key: String in sbn.notification.extras.keySet()) {
+                println(key + " -> " + sbn.notification.extras.get(key))
+            }
+
+            try {
+                val token = sbn.notification.extras.get("android.mediaSession") as MediaSession.Token
+                val controller = MediaController(this, token)
+                val transportControls = controller!!.transportControls
+                transportControls?.pause()
+                println("playing")
+                println(token.toString())
+            } catch (e: Exception) {
+                println(e)
+            }
+
+
         }
+
+
+
+
     }
 
     fun showHeadsUp() {
@@ -50,14 +76,13 @@ class YtNotificationListener : NotificationListenerService() {
                 .setContentText("Tomorrow will be your birthday.")
                 // TODO :set sound to void
 
-                .setPriority(NotificationCompat.PRIORITY_MAX) //must give priority to High, Max which will considered as heads-up notification
+                .setPriority(NotificationCompat.PRIORITY_MAX)
                 .addAction(R.drawable.common_google_signin_btn_icon_dark,
                         "Launch", null)
                 .addAction(R.drawable.common_google_signin_btn_icon_dark,
                         "Always Launch", null)
 
         val notificationManager = this.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-//to post your notification to the notification bar with a id. If a notification with same id already exists, it will get replaced with updated information.
         notificationManager.notify(0, b.build())
 
     }

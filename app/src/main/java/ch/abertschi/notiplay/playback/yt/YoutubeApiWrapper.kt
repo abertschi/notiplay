@@ -1,5 +1,6 @@
 package ch.abertschi.notiplay.playback.yt
 
+import android.text.TextUtils
 import com.github.kittinunf.fuel.android.extension.responseJson
 import com.github.kittinunf.fuel.httpGet
 import io.reactivex.Observable
@@ -22,29 +23,80 @@ class YoutubeApiWrapper : AnkoLogger {
                                     var thumbnailUrl: String)
 
 
-    fun getRelatedVideos(videoId: String) = Observable.create<List<YoutubeVideoMetadata>> { sink ->
-        "$YOUTUBE_API/search?part=snippet&relatedToVideoId=$videoId&type=video&key=$API_Key"
-                .httpGet()
-                .responseJson { request, response, result ->
-                    val (json, error) = result
-                    if (error != null) sink.onError(Exception("Error in fetching related videos"))
-                    else {
-                        try {
-                            val items = json!!.obj().getJSONArray("items")
-                            val metadata = ArrayList<YoutubeVideoMetadata>()
-                            for (i: Int in 0 until items.length()) {
-                                val item = items.get(i) as JSONObject
-                                val id = item.getJSONObject("id").getString("videoId")
-                                val snippet = item.getJSONObject("snippet") as JSONObject
-                                metadata.add(createMetadataFromSnippet(snippet, id))
+    fun getChannelByUsername(username: String) =
+            Observable.create<String> { sink ->
+                "$YOUTUBE_API/channels?part=id&forUsername=$username&key=$API_Key"
+                        .httpGet()
+                        .responseJson { request, response, result ->
+                            val (json, error) = result
+                            if (error != null) sink.onError(Exception("Error in fetching video by channel/username", error))
+                            else {
+                                try {
+                                    val items = json!!.obj().getJSONArray("items")
+                                    val item = items.get(0) as JSONObject
+                                    val channelId = item.get("id") as String
+                                    sink.onNext(channelId)
+                                } catch (e: Exception) {
+                                    sink.onError(Exception("Error while parsing channel/username", e))
+                                }
                             }
-                            sink.onNext(metadata)
-                        } catch (e: Exception) {
-                            sink.onError(Exception("Error while parsing related video response", e))
                         }
-                    }
-                }
-    }
+            }
+
+
+    fun getVideoIdBy(username: String, videoTitle: String) =
+            Observable.create<String> { sink ->
+                getChannelByUsername(username)
+                        .map { channelId ->
+                            ("$YOUTUBE_API/search?part=snippet&q=" + TextUtils.htmlEncode(videoTitle) +
+                                    "&channelId=$channelId" +
+                                    "&key=$API_Key")
+                                    .httpGet()
+                                    .responseJson { request, response, result ->
+                                        val (json, error) = result
+                                        if (error != null) sink
+                                                .onError(Exception("Error in fetching video by channel/username", error))
+                                        else {
+                                            try {
+                                                val items = json!!.obj().getJSONArray("items")
+                                                val item = items.get(0) as JSONObject
+                                                val id = item.get("id") as JSONObject
+                                                val videoId = id.get("videoId") as String
+                                                sink.onNext(videoId)
+                                            } catch (e: Exception) {
+                                                sink.onError(Exception("Error while parsing channel/username", e))
+                                            }
+                                        }
+                                    }
+
+                        }
+            }
+
+
+    fun getRelatedVideos(videoId: String) =
+            Observable.create<List<YoutubeVideoMetadata>> { sink ->
+                "$YOUTUBE_API/search?part=snippet&relatedToVideoId=$videoId&type=video&key=$API_Key"
+                        .httpGet()
+                        .responseJson { request, response, result ->
+                            val (json, error) = result
+                            if (error != null) sink.onError(Exception("Error in fetching related videos"))
+                            else {
+                                try {
+                                    val items = json!!.obj().getJSONArray("items")
+                                    val metadata = ArrayList<YoutubeVideoMetadata>()
+                                    for (i: Int in 0 until items.length()) {
+                                        val item = items.get(i) as JSONObject
+                                        val id = item.getJSONObject("id").getString("videoId")
+                                        val snippet = item.getJSONObject("snippet") as JSONObject
+                                        metadata.add(createMetadataFromSnippet(snippet, id))
+                                    }
+                                    sink.onNext(metadata)
+                                } catch (e: Exception) {
+                                    sink.onError(Exception("Error while parsing related video response", e))
+                                }
+                            }
+                        }
+            }
 
     fun getVideoMetadata(vId: String) = Observable.create<YoutubeVideoMetadata> { sink ->
         "${YOUTUBE_API}/videos?part=snippet&id=${vId}&key=${API_Key}"

@@ -4,9 +4,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -20,7 +23,7 @@ import org.jetbrains.anko.notificationManager
 /**
  * Created by abertschi on 24.02.18.
  */
-class YtNotificationListener : NotificationListenerService() {
+class YtNotificationListener2 : NotificationListenerService() {
 
 
     override fun onBind(intent: Intent): IBinder? {
@@ -32,9 +35,11 @@ class YtNotificationListener : NotificationListenerService() {
     var enabled = false
     private val CHANNEL_ID: String = "channid"
 
+    private var transportControls: MediaController.TransportControls? = null
+    var controller: MediaController? = null
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        println("ON NOTIFICATION RECEIVED")
-        println("status" + sbn.groupKey)
+//        println("ON NOTIFICATION RECEIVED")
+//        println("status" + sbn.groupKey)
 
         if (sbn.groupKey.toString().contains("com.android.chrome")) {
             val extras = sbn.notification.extras
@@ -46,11 +51,43 @@ class YtNotificationListener : NotificationListenerService() {
             }
 
             try {
-                val token = sbn.notification.extras.get("android.mediaSession") as MediaSession.Token
-                val controller = MediaController(this, token)
-                val transportControls = controller!!.transportControls
-                transportControls?.pause()
-                println("playing")
+                token = sbn.notification.extras.get("android.mediaSession") as MediaSession.Token
+                controller = MediaController(this, token)
+                transportControls = controller!!.transportControls
+                controller?.registerCallback(object: MediaController.Callback() {
+                    override fun onMetadataChanged(metadata: MediaMetadata?) {
+                        super.onMetadataChanged(metadata)
+                        println(metadata?.description)
+                        println(" super.onMetadataChanged(metadata)")
+                    }
+
+                    override fun onSessionEvent(event: String?, extras: Bundle?) {
+                        super.onSessionEvent(event, extras)
+                        println(" super.onSessionEvent(metadata)")
+                    }
+
+                    override fun onPlaybackStateChanged(state: PlaybackState?) {
+                        super.onPlaybackStateChanged(state)
+                        println((state?.position ))
+                        println( " /// " + "POSE")
+                        println(" super.onPlaybackStateChanged(metadata)")
+
+                    }
+
+                    override fun onQueueTitleChanged(title: CharSequence?) {
+                        super.onQueueTitleChanged(title)
+                        println("println(\" super.onQueueTitleChanged(metadata)\")")
+                    }
+
+                    override fun onSessionDestroyed() {
+                        super.onSessionDestroyed()
+                        println(" super.onSessionDestroyed(metadata)")
+                    }
+                })
+                val pos = controller?.playbackState?.bufferedPosition
+                println("BPOS:::::: " + pos)
+                val pos2 = controller?.playbackState?.position
+                println("POS:::::: " + pos2)
                 println(token.toString())
             } catch (e: Exception) {
                 println(e)
@@ -63,6 +100,8 @@ class YtNotificationListener : NotificationListenerService() {
 
 
     }
+
+    var token: MediaSession.Token? = null
 
     fun showHeadsUp() {
         //build notification
@@ -100,7 +139,19 @@ class YtNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        println("ON NOTIFICATION REMOVED")
+//        println("ON NOTIFICATION REMOVED")
+
+        if (sbn.key.contains("chrome") && token != null) {
+            val controller = MediaController(this, token)
+            var transportControls = controller!!.transportControls
+
+            transportControls?.play()
+            println(controller?.queueTitle)
+            println("playing again? ")
+            println(transportControls)
+        }
+
+
         if (sbn.key.contains("chrome") && enabled == true) {
             enabled = false
 //            YtAccessibilityService.that?.active = true

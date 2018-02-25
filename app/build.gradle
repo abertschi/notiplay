@@ -45,6 +45,15 @@ dependencies {
     compile 'com.github.kittinunf.fuel:fuel-gson:1.12.0'
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
 
+    // Google Play services Auth split
+    compile 'com.google.android.gms:play-services-auth:11.8.0'
+// Google Api Client library and Android extension
+    compile 'com.google.api-client:google-api-client:1.23.0'
+    compile 'com.google.api-client:google-api-client-android:1.22.0'
+// Change to the API you want to access:
+// Below is just an example for People REST API access
+    compile 'com.google.apis:google-api-services-youtube:v3-rev192-1.23.0'
+
 }
 repositories {
 //    maven()

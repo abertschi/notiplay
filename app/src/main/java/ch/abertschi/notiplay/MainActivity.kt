@@ -11,10 +11,19 @@ import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
 import ch.abertschi.notiplay.player.PlaybackService
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.Scopes
+import com.google.android.gms.common.api.Scope
+import com.google.api.client.extensions.android.http.AndroidHttp
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.youtube.YouTube
+import org.jetbrains.anko.doAsync
+import java.util.*
 
 
-// https://medium.com/@oriharel/how-to-run-javascript-code-in-a-background-service-on-android-8ec1a12ebe92
-// https://stackoverflow.com/questions/36917469/how-can-i-work-around-youtube-api-embed-restrictions-like-other-websites/36952048#36952048
+
+
 class MainActivity : AppCompatActivity() {
 
     // todo:
@@ -33,12 +42,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val RC_AUTHORIZE_CONTACTS =  10
+
     @TargetApi(Build.VERSION_CODES.M)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        println("RESULT " + requestCode + " " + resultCode + " " + data)
         if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
             if (!Settings.canDrawOverlays(this)) {
                 println("not granted")
                 // SYSTEM_ALERT_WINDOW permission not granted...
+            }
+        }
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == 100
+                || requestCode == RC_AUTHORIZE_CONTACTS) {
+            if (resultCode == RESULT_OK) {
+                fetch()
             }
         }
     }
@@ -74,8 +93,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        setContentView(R.layout.activity_main)
         println("starting service")
+        foo()
 //        YoutubeApiWrapper().getVideoMetadata("-CzBYn7iRSI")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -86,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
         println(intent.action)
 
+        return
 
         if (intent.action == Intent.ACTION_SEND) {
             val videoId: String? = getVideoId(intent)
@@ -106,6 +127,75 @@ class MainActivity : AppCompatActivity() {
             startService(notiIntent)
             ActivityCompat.finishAffinity(this)
             setContentView(R.layout.activity_main)
+        }
+
+    }
+
+    fun foo() {
+        val SCOPE_READ = Scope("https://www.googleapis.com/auth/youtube.readonly")
+        val SCOPE_EMAIL = Scope(Scopes.EMAIL)
+
+        if (!GoogleSignIn.hasPermissions(
+                        GoogleSignIn.getLastSignedInAccount(this),
+                        SCOPE_READ,
+                        SCOPE_EMAIL)) {
+
+            GoogleSignIn.requestPermissions(
+                    this,
+                    100,
+                    GoogleSignIn.getLastSignedInAccount(this),
+                    SCOPE_READ,
+                    SCOPE_EMAIL)
+        } else {
+            fetch()
+        }
+    }
+
+    /** Global instance of the HTTP transport.  */
+    private val HTTP_TRANSPORT = AndroidHttp.newCompatibleTransport()
+    /** Global instance of the JSON factory.  */
+    private val JSON_FACTORY = JacksonFactory.getDefaultInstance()
+
+
+    fun fetch() {
+        val account = GoogleSignIn.getLastSignedInAccount(this)
+
+        account?.let {
+
+            doAsync {
+                val credential = GoogleAccountCredential.usingOAuth2(
+                        this@MainActivity,
+                        Collections.singleton(
+                                "https://www.googleapis.com/auth/youtube.readonly")
+                )
+
+                credential.selectedAccount = account.account
+
+                val service = YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+                        .setApplicationName("REST API sample")
+                        .build()
+                val connectionsResponse = service.channels().list("contentDetails").setMine(true).execute()
+                println(connectionsResponse)
+                var id = connectionsResponse?.items?.get(0)?.get("id") as String?
+                id = "HL"
+                id?.run {
+                    println("ID: " + id)
+                    val watchHistory = service.playlistItems().list("snippet").setPlaylistId(id)
+
+                            .execute()
+                    println(watchHistory)
+                    for (i in watchHistory.items) {
+                        println("ID " + i.get("id"))
+                    }
+                    println("DONEEE")
+                }
+
+
+
+                runOnUiThread {
+
+                }
+            }
         }
 
     }

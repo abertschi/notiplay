@@ -4,9 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-    <permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <permission android:name="android.permission.MEDIA_CONTENT_CONTROL"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
 
     <application
@@ -30,23 +30,46 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".view.HorizontalFullscreenActivity"
-                  android:screenOrientation="landscape"
-                  android:configChanges="screenSize|keyboardHidden"
-                  android:excludeFromRecents="true"
-                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        <activity
+            android:name=".view.HorizontalFullscreenActivity"
+            android:configChanges="screenSize|keyboardHidden"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         </activity>
 
         <!--<service-->
-            <!--android:name="ch.abertschi.notiplay.NotiRunner"-->
-            <!--android:process=":notiservice"-->
-            <!--android:enabled="true"/>-->
+        <!--android:name="ch.abertschi.notiplay.NotiRunner"-->
+        <!--android:process=":notiservice"-->
+        <!--android:enabled="true"/>-->
 
         <service
             android:name="ch.abertschi.notiplay.player.PlaybackService"
-            android:process=":playerservice"
-            android:enabled="true"/>
+            android:enabled="true"
+            android:process=":playerservice"/>
 
+
+        <service
+            android:name=".intercept.YtNotificationListener"
+            android:label="noti"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+
+        <service
+            android:enabled="true"
+            android:process=":accessibilityservice"
+            android:name=".intercept.YtAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibilityservice"/>
+        </service>
     </application>
 
 </manifest>

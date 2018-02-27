@@ -17,6 +17,7 @@ import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import ch.abertschi.notiplay.R
 import ch.abertschi.notiplay.playback.yt.YoutubeApiWrapper
+import ch.abertschi.notiplay.player.PlaybackService
 import org.jetbrains.anko.notificationManager
 
 
@@ -43,18 +44,40 @@ class YtNotificationListener2 : NotificationListenerService() {
 
         if (sbn.groupKey.toString().contains("com.android.chrome")) {
             val extras = sbn.notification.extras
-            var playbackTile = extras.get("android.title")
-            var playbackUsername = extras.get("android.text")
+            var playbackTile = extras.get("android.title") as String
+            var playbackUsername = extras.get("android.text") as String
 
-            for(key: String in sbn.notification.extras.keySet()) {
+            for (key: String in sbn.notification.extras.keySet()) {
                 println(key + " -> " + sbn.notification.extras.get(key))
             }
+            YtAccessibilityService.that?.active = true
+
+            println("fetching videoId with $playbackUsername and $playbackTile")
+//            youtube.getVideoIdBy(playbackUsername, playbackTile)
+//                    .subscribeOn(Schedulers.io())
+//                    .observeOn(Schedulers.io())
+//                    .subscribe(
+//                            { n ->
+//                                println("found videoId: $n")
+//                                n?.run {
+//                                    launch(this)
+//
+//                                }
+//
+//                            },
+//                            { e ->
+//                                println("ERROR: ")
+//                                println(e)
+//                            }
+//                    )
+
+            return
 
             try {
                 token = sbn.notification.extras.get("android.mediaSession") as MediaSession.Token
                 controller = MediaController(this, token)
                 transportControls = controller!!.transportControls
-                controller?.registerCallback(object: MediaController.Callback() {
+                controller?.registerCallback(object : MediaController.Callback() {
                     override fun onMetadataChanged(metadata: MediaMetadata?) {
                         super.onMetadataChanged(metadata)
                         println(metadata?.description)
@@ -68,8 +91,8 @@ class YtNotificationListener2 : NotificationListenerService() {
 
                     override fun onPlaybackStateChanged(state: PlaybackState?) {
                         super.onPlaybackStateChanged(state)
-                        println((state?.position ))
-                        println( " /// " + "POSE")
+                        println((state?.position))
+                        println(" /// " + "POSE")
                         println(" super.onPlaybackStateChanged(metadata)")
 
                     }
@@ -97,8 +120,16 @@ class YtNotificationListener2 : NotificationListenerService() {
         }
 
 
+    }
 
+    fun launch(videoId: String) {
+        val notiIntent = Intent(this, PlaybackService::class.java)
+        notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
 
+        notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, videoId)
+        notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        println(videoId)
+        startService(notiIntent)
     }
 
     var token: MediaSession.Token? = null

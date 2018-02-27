@@ -1,11 +1,11 @@
-package ch.abertschi.notiplay.player
+package ch.abertschi.notiplay.playback.yt
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.MediaMetadataCompat.METADATA_KEY_ALBUM_ART
 import android.util.Log.wtf
-import ch.abertschi.notiplay.playback.yt.YoutubeApiWrapper
+import ch.abertschi.notiplay.player.PlaybackManager
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -16,7 +16,7 @@ import java.net.URL
 /**
  * Created by abertschi on 21.02.18.
  */
-class MetadataManager(val metadataListener: PlaybackManager.MetadataListener) : AnkoLogger {
+class YoutubeMetadata(val metadataListener: PlaybackManager.MetadataListener) : AnkoLogger {
 
     val metadata = YoutubeApiWrapper()
 

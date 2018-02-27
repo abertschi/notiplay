@@ -1,16 +1,18 @@
 package ch.abertschi.notiplay
 
 import android.view.View
+import ch.abertschi.notiplay.playback.yt.WebObserver
 
 /**
  * Created by abertschi on 25.01.18.
  */
-interface NotiRunnable {
+interface Player {
 
     interface ViewController {
 
     }
 
+    fun getState(): Int
     fun playVideoById(videoId: String, seekPosition: Int = 0)
 
     fun playerPause()
@@ -31,8 +33,8 @@ interface NotiRunnable {
     fun seekBackward(seek: Int = 30)
     fun seekToPosition(seconds: Int)
 
-    fun addEventObserver(o: NotiObserver)
-    fun removeEventObserver(o: NotiObserver)
+    fun addEventObserver(o: WebObserver)
+    fun removeEventObserver(o: WebObserver)
 
     @Deprecated("")
     fun getPlaybackPosition()

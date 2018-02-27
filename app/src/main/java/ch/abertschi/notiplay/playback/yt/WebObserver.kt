@@ -1,9 +1,9 @@
-package ch.abertschi.notiplay
+package ch.abertschi.notiplay.playback.yt
 
 /**
  * Created by abertschi on 25.01.18.
  */
-interface NotiObserver {
+interface WebObserver {
 
     enum class PlayerState(val value: Int) {
         UNSTARTED(-1),

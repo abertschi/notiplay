@@ -1,2 +1,13 @@
 * Todos
 ** When starten on no internet, players is dead
+
+
+* Tasks
+** Accessibillity service
+- accessibility service scroll up action
+- parse url from window
+** notification listener:
+- search by channel name and verify with display name
+- or search by title and check if matching channel name
+** Refactor Manager, move js receive into yt player
+** See if sth with media session token can be done

@@ -4,11 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.support.v4.media.session.PlaybackStateCompat
 import android.view.View
 import android.view.WindowManager
 import android.webkit.WebSettings
-import ch.abertschi.notiplay.NotiObserver
-import ch.abertschi.notiplay.NotiRunnable
+import ch.abertschi.notiplay.Player
 import ch.abertschi.notiplay.view.FloatingWindow
 import org.jetbrains.anko.AnkoLogger
 import java.nio.charset.Charset
@@ -19,14 +19,17 @@ import java.util.*
  * Created by abertschi on 26.01.18.
  */
 
-class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
+class YoutubePlayer(val context: Context, val playbackCallback: Callback) : Player, WebObserver, AnkoLogger {
+    override fun getState(): Int {
+        return state
+    }
 
 
     override fun getView(): View {
         return youtubeWebView!!
     }
 
-    override fun getViewController(): NotiRunnable.ViewController {
+    override fun getViewController(): Player.ViewController {
         return null!!
     }
 
@@ -39,7 +42,7 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 //    }
 
     private val handler = Handler(Looper.getMainLooper())
-    private var observers: MutableList<NotiObserver> = ArrayList()
+    private var observers: MutableList<WebObserver> = ArrayList()
     private var onCloseCallback: (() -> Unit)? = null
 
     private val webAsset: String = "notiplay.html"
@@ -51,7 +54,6 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
 
 
     init {
-
 
     }
 
@@ -77,7 +79,6 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
         }
 
     }
-
 
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -152,13 +153,117 @@ class YoutubePlayer(val context: Context) : NotiRunnable, AnkoLogger {
     }
 
 
-    override fun removeEventObserver(o: NotiObserver) {
+    override fun removeEventObserver(o: WebObserver) {
         observers.remove(o)
     }
 
-    override fun addEventObserver(o: NotiObserver) {
+    override fun addEventObserver(o: WebObserver) {
         observers.add(o)
     }
 
+
+    override fun onPlayerReady() {
+//        playbackListener?.onPlaybackStarted()
+//        youtubePlayer?.playerPlay()
+//        playerPlay()
+        playbackCallback.onPlayerReady()
+    }
+
+    override fun onPlaybackEndReached() {
+        playbackCallback?.onPaybackEnd()
+//        val pStateCompat = PlaybackStateCompat.Builder()
+//                .setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+//                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+//                        1.0f, SystemClock.elapsedRealtime()).build()
+//
+//        playbackListener.onPlaybackChanged(pStateCompat)
+
+    }
+
+    private var state: Int = PlaybackStateCompat.STATE_NONE
+
+    override fun onPlayerStateChange(s: WebObserver.PlayerState) {
+        var playbackState = 0
+        when (s) {
+            WebObserver.PlayerState.PLAYING -> {
+                playbackState = PlaybackStateCompat.STATE_PLAYING
+            }
+            WebObserver.PlayerState.BUFFERING -> {
+                playbackState = PlaybackStateCompat.STATE_BUFFERING
+            }
+            WebObserver.PlayerState.UNSTARTED -> {
+                playbackState = PlaybackStateCompat.STATE_CONNECTING
+            }
+            WebObserver.PlayerState.PAUSED -> {
+                playbackState = PlaybackStateCompat.STATE_PAUSED
+            }
+            else -> {
+                error { "unknown sate in youtube iframe player received" }
+            }
+        }
+//        lastKnownPlaybackState = playbackState.toLong()
+//        val pStateCompat = PlaybackStateCompat.Builder()
+//                .setState(playbackState, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+//                        1.0f, SystemClock.elapsedRealtime()).build()
+//
+//        playbackListener.onPlaybackChanged(pStateCompat)
+        state = playbackState
+        playbackCallback?.upatePlaybackState(playbackState)
+    }
+
+    override fun onPlaybackQualityChange(quality: String) {
+
+    }
+
+    override fun onPlaybackRateChange(rate: Int) {
+
+    }
+
+    override fun onErrorCode(code: WebObserver.ErrorCode) {
+//        val pStateCompat = PlaybackStateCompat.Builder()
+//                .setState(PlaybackStateCompat.ERROR_CODE_NOT_SUPPORTED,
+//                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+//                        1.0f, SystemClock.elapsedRealtime())
+//                .setErrorMessage(code.code, code.toString()).build()
+//        playbackListener.onPlaybackChanged(pStateCompat)
+        playbackCallback.onError(code.code, code.toString())
+
+
+    }
+
+    override fun onPlaybackPosition(seconds: Int) {
+
+
+    }
+
+    override fun onPlaybackPositionUpdate(seconds: Int) {
+
+//        val pStateCompat = PlaybackStateCompat.Builder()
+//                .setState(lastKnownPlaybackState.toInt(), seconds.toLong() * 1000,
+//                        1.0f, SystemClock.elapsedRealtime()).build()
+//        playbackListener.onPlaybackChanged(pStateCompat)
+        playbackCallback?.updatePlaybackPosition(seconds)
+    }
+
+    override fun onVideoData(title: String, thumbail: String, duration: Int, loop: Boolean, videoId: String) {
+//                val hash = "${videoId}${title}"
+//                if (hash != metaDataHash) {
+//                    val m = MediaMetadataCompat.Builder()
+//                            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
+//                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, videoId)
+//                            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, "subtitle")
+//                            .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, "https://www.google.ch/imgres?imgurl=https%3A%2F%2Fwww.w3schools.com%2Fhowto%2Fimg_fjords.jpg&imgrefurl=https%3A%2F%2Fwww.w3schools.com%2Fhowto%2Fhowto_js_image_magnifier_glass.asp&docid=k0i2ftK0GIzuDM&tbnid=TVEPc8yBbrThFM%3A&vet=10ahUKEwiC-Iz95qDZAhUFzRQKHWhDCmIQMwi7ASgAMAA..i&w=600&h=400&bih=667&biw=1344&q=image&ved=0ahUKEwiC-Iz95qDZAhUFzRQKHWhDCmIQMwi7ASgAMAA&iact=mrc&uact=8")
+//                            .build()
+//                    metadataListener.onMetadataChanged(m)
+//                }
+    }
+
+    interface Callback {
+        fun upatePlaybackState(state: Int)
+        fun updatePlaybackPosition(seconds: Int)
+        fun onPaybackEnd()
+        fun onPlayerReady()
+        fun onError(code: Int, msg: String)
+    }
 
 }

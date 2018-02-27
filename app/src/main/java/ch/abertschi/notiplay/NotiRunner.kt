@@ -27,7 +27,7 @@
 // * https://stackoverflow.com/questions/11095122/how-to-make-my-android-app-appear-in-the-share-list-of-another-specific-app
 // */
 //
-//class NotiRunner : Service(), NotiObserver {
+//class NotiRunner : Service(), WebObserver {
 //    override fun onPlaybackEndReached() {
 //    }
 //
@@ -42,7 +42,7 @@
 //    private var channelId = "media_playback_channel"
 //
 //    private var videoTitle: String = ""
-//    private var playbackState: NotiObserver.PlayerState = NotiObserver.PlayerState.UNSTARTED
+//    private var playbackState: WebObserver.PlayerState = WebObserver.PlayerState.UNSTARTED
 //
 //    lateinit var notificationManager: NotificationManager
 //
@@ -310,27 +310,27 @@
 //        println("ready")
 //    }
 //
-//    override fun onPlayerStateChange(state: NotiObserver.PlayerState) {
+//    override fun onPlayerStateChange(state: WebObserver.PlayerState) {
 //        println(state)
 //        if (notificationBuilder == null) return
 //
 //        when (state) {
-//            NotiObserver.PlayerState.PLAYING -> {
+//            WebObserver.PlayerState.PLAYING -> {
 //                buildNotification(generateAction(R.mipmap.ic_pause_white_48dp, "Pause", ACTION_PAUSE))
 //                setSubtitle("playing")
-//                playbackState = NotiObserver.PlayerState.PLAYING
+//                playbackState = WebObserver.PlayerState.PLAYING
 //            }
-//            NotiObserver.PlayerState.BUFFERING -> {
+//            WebObserver.PlayerState.BUFFERING -> {
 //                setSubtitle("buffering")
-//                playbackState = NotiObserver.PlayerState.BUFFERING
+//                playbackState = WebObserver.PlayerState.BUFFERING
 //            }
-//            NotiObserver.PlayerState.UNSTARTED -> {
+//            WebObserver.PlayerState.UNSTARTED -> {
 //                setSubtitle("loading")
-//                playbackState = NotiObserver.PlayerState.UNSTARTED
+//                playbackState = WebObserver.PlayerState.UNSTARTED
 //            }
-//            NotiObserver.PlayerState.PAUSED -> {
+//            WebObserver.PlayerState.PAUSED -> {
 //                setSubtitle("paused")
-//                playbackState = NotiObserver.PlayerState.PAUSED
+//                playbackState = WebObserver.PlayerState.PAUSED
 //                stopForeground(true)
 //            }
 //        }
@@ -345,7 +345,7 @@
 //
 //    }
 //
-//    override fun onErrorCode(code: NotiObserver.ErrorCode) {
+//    override fun onErrorCode(code: WebObserver.ErrorCode) {
 //        println("error: " + code)
 //        hasError = true
 //        notificationBuilder?.run {
@@ -391,12 +391,12 @@
 //            time = String.format("%02d:%02d", mins, seconds)
 //        }
 //
-//        if (playbackState == NotiObserver.PlayerState.PLAYING) {
+//        if (playbackState == WebObserver.PlayerState.PLAYING) {
 //            setSubtitle("playing " + time)
 //            updatedOnPause = false
 //        }
 //
-//        if (playbackState == NotiObserver.PlayerState.PAUSED) {
+//        if (playbackState == WebObserver.PlayerState.PAUSED) {
 //            if (updatedOnPause) return
 //            updatedOnPause = true
 //            setSubtitle("paused " + time)

@@ -28,16 +28,19 @@ class YoutubeApiWrapper : AnkoLogger {
                 "$YOUTUBE_API/channels?part=id&forUsername=$username&key=$API_Key"
                         .httpGet()
                         .responseJson { request, response, result ->
+                            info { "got0 " + result }
                             val (json, error) = result
                             if (error != null) sink.onError(Exception("Error in fetching video by channel/username", error))
                             else {
                                 try {
+                                    println(json!!.obj().toString())
                                     val items = json!!.obj().getJSONArray("items")
+                                    println(items.toString())
                                     val item = items.get(0) as JSONObject
                                     val channelId = item.get("id") as String
                                     sink.onNext(channelId)
                                 } catch (e: Exception) {
-                                    sink.onError(Exception("Error while parsing channel/username", e))
+                                    sink.onError(e)
                                 }
                             }
                         }
@@ -53,6 +56,7 @@ class YoutubeApiWrapper : AnkoLogger {
                                     "&key=$API_Key")
                                     .httpGet()
                                     .responseJson { request, response, result ->
+                                        info { "got " + result }
                                         val (json, error) = result
                                         if (error != null) sink
                                                 .onError(Exception("Error in fetching video by channel/username", error))
@@ -69,7 +73,7 @@ class YoutubeApiWrapper : AnkoLogger {
                                         }
                                     }
 
-                        }
+                        }.subscribe()
             }
 
 

@@ -18,6 +18,7 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
         info("onInterrupt")
 
     }
+
     var active = false
     var done = false
 
@@ -29,6 +30,7 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
         var that: YtAccessibilityService? = null
 
     }
+
     var capture = false
 
     fun scrollView(nodeInfo: AccessibilityNodeInfo?): Boolean {
@@ -53,7 +55,7 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
         deque.add(root)
         while (!deque.isEmpty()) {
             val node = deque.removeFirst()
-            if (node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_BACKWARD)) {
+            if (node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP)) {
                 return node
             }
             for (i in 0 until node.getChildCount()) {
@@ -73,8 +75,10 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
 //        }
 
 
-        if (rootInActiveWindow != null && capture && active) {
+        if (rootInActiveWindow != null && active && capture) {
             info { event }
+            capture = false
+            println("SCROLLING UPE")
             active = false
             val scrollable = findScrollableNode(rootInActiveWindow)
             scrollable?.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP.id)
@@ -89,7 +93,7 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
                 if (event.packageName.toString().contains("chrome")) {
                     capture = true
                 } else {
-                    capture = false
+
                 }
 //
 

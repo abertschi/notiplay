@@ -2,12 +2,11 @@ package ch.abertschi.notiplay.playback.yt
 
 import android.content.Context
 import android.webkit.JavascriptInterface
-import ch.abertschi.notiplay.NotiObserver
 
 /**
  * Created by abertschi on 25.01.18.
  */
-class WebInterface(val acontext: Context, var observers: List<NotiObserver>) {
+class WebInterface(val acontext: Context, var observers: List<WebObserver>) {
 
     @JavascriptInterface
     fun hello(): Unit = throw UnsupportedOperationException("yay")
@@ -17,7 +16,7 @@ class WebInterface(val acontext: Context, var observers: List<NotiObserver>) {
 
     @JavascriptInterface
     fun onPlayerStateChange(state: Int) {
-        val s: NotiObserver.PlayerState = NotiObserver.PlayerState.toPlayerState(state)
+        val s: WebObserver.PlayerState = WebObserver.PlayerState.toPlayerState(state)
         observers.forEach { it.onPlayerStateChange(s) }
     }
 
@@ -32,7 +31,7 @@ class WebInterface(val acontext: Context, var observers: List<NotiObserver>) {
 
     @JavascriptInterface
     fun onErrorCode(code: Int) {
-        val eCode = NotiObserver.ErrorCode.toErrorEnum(code)
+        val eCode = WebObserver.ErrorCode.toErrorEnum(code)
         observers.forEach { it.onErrorCode(eCode) }
     }
 

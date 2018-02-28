@@ -1,4 +1,4 @@
-package ch.abertschi.notiplay.player
+package ch.abertschi.notiplay
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -19,7 +19,6 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.text.Html
-import ch.abertschi.notiplay.R
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
 

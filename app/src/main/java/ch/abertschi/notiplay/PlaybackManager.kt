@@ -1,4 +1,4 @@
-package ch.abertschi.notiplay.player
+package ch.abertschi.notiplay
 
 import android.content.Intent
 import android.net.Uri

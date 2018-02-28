@@ -19,7 +19,8 @@ import java.util.*
  * Created by abertschi on 26.01.18.
  */
 
-class YoutubePlayer(val context: Context, val playbackCallback: Callback) : Player, WebObserver, AnkoLogger {
+class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback) : Player,
+        WebObserver, AnkoLogger {
     override fun getState(): Int {
         return state
     }
@@ -258,12 +259,5 @@ class YoutubePlayer(val context: Context, val playbackCallback: Callback) : Play
 //                }
     }
 
-    interface Callback {
-        fun upatePlaybackState(state: Int)
-        fun updatePlaybackPosition(seconds: Int)
-        fun onPaybackEnd()
-        fun onPlayerReady()
-        fun onError(code: Int, msg: String)
-    }
 
 }

@@ -45,7 +45,7 @@
         <!--android:enabled="true"/>-->
 
         <service
-            android:name="ch.abertschi.notiplay.player.PlaybackService"
+            android:name="ch.abertschi.notiplay.PlaybackService"
             android:enabled="true"
             android:process=":playerservice"/>
 

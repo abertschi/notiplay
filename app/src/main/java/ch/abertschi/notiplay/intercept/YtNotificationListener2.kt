@@ -17,7 +17,7 @@ import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import ch.abertschi.notiplay.R
 import ch.abertschi.notiplay.playback.yt.YoutubeApiWrapper
-import ch.abertschi.notiplay.player.PlaybackService
+import ch.abertschi.notiplay.PlaybackService
 import org.jetbrains.anko.notificationManager
 
 

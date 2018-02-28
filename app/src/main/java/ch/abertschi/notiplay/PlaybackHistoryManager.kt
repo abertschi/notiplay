@@ -1,4 +1,4 @@
-package ch.abertschi.notiplay.player
+package ch.abertschi.notiplay
 
 /**
  * Created by abertschi on 21.02.18.

@@ -55,4 +55,12 @@ interface Player {
 //    fun confirmFullscreen()
 //    @Deprecated("")
 //    fun setFullscreen(state: Boolean)
+
+    interface Callback {
+        fun upatePlaybackState(state: Int)
+        fun updatePlaybackPosition(seconds: Int)
+        fun onPaybackEnd()
+        fun onPlayerReady()
+        fun onError(code: Int, msg: String)
+    }
 }

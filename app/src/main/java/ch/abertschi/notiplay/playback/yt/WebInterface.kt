@@ -2,17 +2,22 @@ package ch.abertschi.notiplay.playback.yt
 
 import android.content.Context
 import android.webkit.JavascriptInterface
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.info
 
 /**
  * Created by abertschi on 25.01.18.
  */
-class WebInterface(val acontext: Context, var observers: List<WebObserver>) {
+class WebInterface(val acontext: Context, var observers: List<WebObserver>): AnkoLogger {
 
     @JavascriptInterface
     fun hello(): Unit = throw UnsupportedOperationException("yay")
 
     @JavascriptInterface
-    fun onPlayerReady() = observers.forEach { it.onPlayerReady() }
+    fun onPlayerReady() {
+        info { "ON PLAYER READY WEBINTERFACEf" }
+        observers.forEach { it.onPlayerReady() }
+    }
 
     @JavascriptInterface
     fun onPlayerStateChange(state: Int) {

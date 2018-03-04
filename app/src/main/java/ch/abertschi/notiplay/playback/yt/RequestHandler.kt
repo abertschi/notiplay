@@ -50,7 +50,7 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
     override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?):
             WebResourceResponse? {
         val url = request?.url.toString()
-        info { "loading " + url }
+//        debug { "loading " + url }
         blockedUrls.forEach({
             if (url.contains(it)) {
                 blockingRequests = true
@@ -80,7 +80,7 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
             return WebResourceResponse("bgsType", "someEncoding", null)
         }
 
-        info { "#intercepting: " + url }
+        //debug { "#intercepting: " + url }
 
         val address = url.trim { it <= ' ' }
         var origin = if (url.startsWith(googleYtV3VideoApi)) {

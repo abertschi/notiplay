@@ -5,7 +5,6 @@ import com.github.kittinunf.fuel.android.extension.responseJson
 import com.github.kittinunf.fuel.httpGet
 import io.reactivex.Observable
 import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.info
 import org.jetbrains.anko.warn
 import org.json.JSONObject
 
@@ -28,7 +27,7 @@ class YoutubeApiWrapper : AnkoLogger {
                 "$YOUTUBE_API/channels?part=id&forUsername=$username&key=$API_Key"
                         .httpGet()
                         .responseJson { request, response, result ->
-                            info { "got0 " + result }
+                            //info { "got0 " + result }
                             val (json, error) = result
                             if (error != null) sink.onError(Exception("Error in fetching video by channel/username", error))
                             else {
@@ -56,7 +55,7 @@ class YoutubeApiWrapper : AnkoLogger {
                                     "&key=$API_Key")
                                     .httpGet()
                                     .responseJson { request, response, result ->
-                                        info { "got " + result }
+                                        //info { "got " + result }
                                         val (json, error) = result
                                         if (error != null) sink
                                                 .onError(Exception("Error in fetching video by channel/username", error))
@@ -112,7 +111,7 @@ class YoutubeApiWrapper : AnkoLogger {
                     } else {
                         val json = data!!
                         try {
-                            info(json.content)
+                            //info(json.content)
                             val snippet = json.obj().getJSONArray("items")
                                     .getJSONObject(0)
                                     .getJSONObject("snippet")

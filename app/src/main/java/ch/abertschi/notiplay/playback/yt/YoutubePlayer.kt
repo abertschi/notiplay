@@ -55,6 +55,7 @@ class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback)
 
 
     init {
+        observers.add(this)
 
     }
 
@@ -62,14 +63,13 @@ class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback)
     fun startWebView() {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-        youtubeWebView = YoutubeWebView(this.context)
+        try {
+            youtubeWebView = YoutubeWebView(this.context)
+        } catch (e: Exception) {
+            //wtf(e)
+        }
+
         webViewClient = RequestHandler(youtubeWebView!!)
-
-//        this.floatingWindow = FloatingWindow(context)
-
-//        floatingWindow?.onDoubleTab = this::requestFullScreen
-//        floatingWindow?.onFloatingWindowAction = this::requestFloatingWindow
-
 
         youtubeWebView?.let {
             it.webViewClient = webViewClient
@@ -164,9 +164,6 @@ class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback)
 
 
     override fun onPlayerReady() {
-//        playbackListener?.onPlaybackStarted()
-//        youtubePlayer?.playerPlay()
-//        playerPlay()
         playbackCallback.onPlayerReady()
     }
 

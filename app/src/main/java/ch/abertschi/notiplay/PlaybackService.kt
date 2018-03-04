@@ -87,6 +87,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     fun shutdownService() {
         val myService = Intent(this, this::class.java)
         stopService(myService)
+        
     }
 
     override fun onDestroy() {

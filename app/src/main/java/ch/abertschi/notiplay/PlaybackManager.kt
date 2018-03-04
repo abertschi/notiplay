@@ -13,46 +13,16 @@ import ch.abertschi.notiplay.view.FloatingWindowController
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
 import org.jetbrains.anko.toast
+import org.jetbrains.anko.warn
 
 
 /**
  * Created by abertschi on 10.02.18.
  */
 class PlaybackManager(val playbackService: PlaybackService, val metadataListener: MetadataListener,
-                      val playbackListener: PlaybackListener) : AnkoLogger, YoutubePlayer.Callback {
-    override fun onError(code: Int, msg: String) {
+                      val playbackListener: PlaybackListener) : AnkoLogger, Player.Callback {
 
-    }
-
-
-    override fun upatePlaybackState(state: Int) {
-        val pStateCompat = PlaybackStateCompat.Builder()
-                .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1.0f, SystemClock.elapsedRealtime()).build()
-        playbackListener.onPlaybackChanged(pStateCompat)
-    }
-
-    override fun updatePlaybackPosition(seconds: Int) {
-        val pStateCompat = PlaybackStateCompat.Builder()
-                .setState(youtubePlayer.getState(), seconds.toLong() * 1000,
-                        1.0f, SystemClock.elapsedRealtime()).build()
-        playbackListener.onPlaybackChanged(pStateCompat)
-    }
-
-    override fun onPaybackEnd() {
-        val pStateCompat = PlaybackStateCompat.Builder()
-                .setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1.0f, SystemClock.elapsedRealtime()).build()
-        playbackListener.onPlaybackChanged(pStateCompat)
-    }
-
-    override fun onPlayerReady() {
-        playbackListener.onPlaybackStarted()
-        youtubePlayer.playerPlay()
-    }
-
-    val youtubePlayer: YoutubePlayer = YoutubePlayer(playbackService, this)
+    val player: YoutubePlayer = YoutubePlayer(playbackService, this)
 
     var floatingWindowController: FloatingWindowController? = null
 
@@ -61,136 +31,47 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
 
     val metadataManager = YoutubeMetadata(metadataListener)
 
+    private var tasksOnPlayerReady: ArrayList<(() -> Unit)>? = ArrayList<(() -> Unit)>()
+
     private var booted = false
-
-    init {
-//        val youtubeCallback: WebObserver = object : WebObserver {
-//            var lastKnownPlaybackState: Long = PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN
-//
-//            override fun onPlayerReady() {
-//
-//            }
-//
-//            override fun onPlaybackEndReached() {
-////                val pStateCompat = PlaybackStateCompat.Builder()
-////                        .setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
-////                                PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-////                                1.0f, SystemClock.elapsedRealtime()).build()
-////
-////                playbackListener.onPlaybackChanged(pStateCompat)
-//
-//            }
-//
-////            override fun onPlayerStateChange(s: WebObserver.PlayerState) {
-////                var playbackState = 0
-////                when (s) {
-////                    WebObserver.PlayerState.PLAYING -> {
-////                        playbackState = PlaybackStateCompat.STATE_PLAYING
-////                    }
-////                    WebObserver.PlayerState.BUFFERING -> {
-////                        playbackState = PlaybackStateCompat.STATE_BUFFERING
-////                    }
-////                    WebObserver.PlayerState.UNSTARTED -> {
-////                        playbackState = PlaybackStateCompat.STATE_CONNECTING
-////                    }
-////                    WebObserver.PlayerState.PAUSED -> {
-////                        playbackState = PlaybackStateCompat.STATE_PAUSED
-////                    }
-////                    else -> {
-////                        error { "unknown sate in youtube iframe player received" }
-////                    }
-////                }
-////                lastKnownPlaybackState = playbackState.toLong()
-////                val pStateCompat = PlaybackStateCompat.Builder()
-////                        .setState(playbackState, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-////                                1.0f, SystemClock.elapsedRealtime()).build()
-////
-////                playbackListener.onPlaybackChanged(pStateCompat)
-//        }
-//
-//        override fun onPlaybackQualityChange(quality: String) {
-//
-//        }
-//
-//        override fun onPlaybackRateChange(rate: Int) {
-//
-//        }
-//
-//        override fun onErrorCode(code: WebObserver.ErrorCode) {
-//            val pStateCompat = PlaybackStateCompat.Builder()
-//                    .setState(PlaybackStateCompat.ERROR_CODE_NOT_SUPPORTED,
-//                            PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-//                            1.0f, SystemClock.elapsedRealtime())
-//                    .setErrorMessage(code.code, code.toString()).build()
-//            playbackListener.onPlaybackChanged(pStateCompat)
-//
-//        }
-//
-//        override fun onPlaybackPosition(seconds: Int) {
-//
-//
-//        }
-//
-//        override fun onPlaybackPositionUpdate(seconds: Int) {
-//
-//            val pStateCompat = PlaybackStateCompat.Builder()
-//                    .setState(lastKnownPlaybackState.toInt(), seconds.toLong() * 1000,
-//                            1.0f, SystemClock.elapsedRealtime()).build()
-//            playbackListener.onPlaybackChanged(pStateCompat)
-//        }
-//
-//        override fun onVideoData(title: String, thumbail: String, duration: Int, loop: Boolean, videoId: String) {
-////                val hash = "${videoId}${title}"
-////                if (hash != metaDataHash) {
-////                    val m = MediaMetadataCompat.Builder()
-////                            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, title)
-////                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, videoId)
-////                            .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, "subtitle")
-////                            .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, "https://www.google.ch/imgres?imgurl=https%3A%2F%2Fwww.w3schools.com%2Fhowto%2Fimg_fjords.jpg&imgrefurl=https%3A%2F%2Fwww.w3schools.com%2Fhowto%2Fhowto_js_image_magnifier_glass.asp&docid=k0i2ftK0GIzuDM&tbnid=TVEPc8yBbrThFM%3A&vet=10ahUKEwiC-Iz95qDZAhUFzRQKHWhDCmIQMwi7ASgAMAA..i&w=600&h=400&bih=667&biw=1344&q=image&ved=0ahUKEwiC-Iz95qDZAhUFzRQKHWhDCmIQMwi7ASgAMAA&iact=mrc&uact=8")
-////                            .build()
-////                    metadataListener.onMetadataChanged(m)
-////                }
-//        }
-//    }
-//        youtubePlayer.addEventObserver(youtubeCallback)
-    }
-
+    private var playerReady = false
 
     private val mediaSessionCallback = object : MediaSessionCompat.Callback(), AnkoLogger {
 
         override fun onPause() {
             super.onPause()
-            youtubePlayer.playerPause()
+            player.playerPause()
         }
 
         override fun onPlay() {
             super.onPlay()
-            youtubePlayer.playerPlay()
+            player.playerPlay()
         }
 
         override fun onSkipToNext() {
             super.onSkipToNext()
             info { "onSkipToNext" }
-//            youtubePlayer.playerNextVideo() // TODO: Metadata
+//            player.playerNextVideo() // TODO: Metadata
         }
 
         override fun onSkipToPrevious() {
             super.onSkipToPrevious()
             info { "onSkipToPrevious" }
-            youtubePlayer.seekToPosition(0)
-            youtubePlayer.playerPlay()
-//            youtubePlayer.playerPreviousVideo() // TODO: Metadata
+            player.seekToPosition(0)
+            player.playerPlay()
+//            player.playerPreviousVideo() // TODO: Metadata
         }
 
         override fun onStop() {
-            youtubePlayer.playerStop()
+            player.playerStop()
             floatingWindowController?.stopFloatingWindow()
             playbackListener.onPlaybackStoped()
+            playbackService?.shutdownService()
         }
 
         override fun onSeekTo(pos: Long) {
             super.onSeekTo(pos)
-            youtubePlayer.seekToPosition(pos.toInt())
+            player.seekToPosition(pos.toInt())
         }
 
         override fun onCustomAction(action: String?, extras: Bundle?) {
@@ -204,34 +85,95 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
                 playbackService.startActivity(intent)
 
                 playbackService.sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
-                youtubePlayer.playerPause()
+                player.playerPause()
+                floatingWindowController?.setVisible(false)
 
             } else if (action == PlaybackNotificationManager.ACTION_SHOW_VIDEO_PLAYER) {
-                floatingWindowController?.toggleVisible()
                 playbackService.sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
-                playbackService?.toast("Toggling playback window")
-
+                floatingWindowController?.run {
+                    if (this.isVisible() == true) {
+                        playbackService?.toast("Hiding floating window")
+                        this.setVisible(false)
+                    } else {
+                        playbackService?.toast("Showing floating window")
+                        this.setVisible(true)
+                    }
+                }
             }
         }
     }
 
     fun startPlaybackWithVideoId(id: String) {
+        info { "playing with id: $id" }
         videoIdOfCurrentVideo = id
         metadataManager.setVideoId(id)
         metadataManager.fetchMetadata()
 
+        info { "boot state: $booted" }
         if (!booted) {
             booted = true
-            youtubePlayer.startWebView()
+            info { "starting webview" }
+            player.startWebView()
             floatingWindowController = FloatingWindowController(playbackService, playbackService)
-            floatingWindowController?.startFloatingWindow(youtubePlayer.getView())
+            floatingWindowController?.startFloatingWindow(player.getView())
 
-//            youtubePlayer.startWebView()
+//            player.startWebView()
         }
-        youtubePlayer.playVideoById(id)
+        if (!playerReady) {
+            info { "player not yet ready" }
+            tasksOnPlayerReady?.add {
+                info { "tasks on player ready: play videoById" }
+                player.playVideoById(id)
+            }
+        } else {
+            info { "playVideoById because player was already ready" }
+            player.playVideoById(id)
+        }
     }
 
     fun getMediaSessionCallback(): MediaSessionCompat.Callback = mediaSessionCallback
+
+    override fun onError(code: Int, msg: String) {
+        warn { "error: $code: $msg" }
+    }
+
+    override fun upatePlaybackState(state: Int) {
+//        if (state == PlaybackStateCompat.STATE_PLAYING && )
+        // private hasPlaybackStarted = false
+
+
+        val pStateCompat = PlaybackStateCompat.Builder()
+                .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1.0f, SystemClock.elapsedRealtime()).build()
+        playbackListener.onPlaybackChanged(pStateCompat)
+    }
+
+    override fun updatePlaybackPosition(seconds: Int) {
+        info { "update position: " + seconds }
+        val pStateCompat = PlaybackStateCompat.Builder()
+                .setState(player.getState(), seconds.toLong() * 1000,
+                        1.0f, SystemClock.elapsedRealtime()).build()
+        playbackListener.onPlaybackChanged(pStateCompat)
+    }
+
+    override fun onPaybackEnd() {
+        val pStateCompat = PlaybackStateCompat.Builder()
+                .setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1.0f, SystemClock.elapsedRealtime()).build()
+        playbackListener.onPlaybackChanged(pStateCompat)
+    }
+
+    override fun onPlayerReady() {
+        info { "player finally ready" }
+        playerReady = true
+        tasksOnPlayerReady?.forEach {
+            it()
+            player.playerPlay()
+        }
+        tasksOnPlayerReady?.clear()
+    }
+
 
     interface MetadataListener {
         fun onVideoIdChanged(id: String)

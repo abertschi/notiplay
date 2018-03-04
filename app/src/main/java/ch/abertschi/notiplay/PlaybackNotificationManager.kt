@@ -66,10 +66,24 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     var transportControls: MediaControllerCompat.TransportControls? = null
 
     var started: Boolean = false
+    var showPersistentNotification = true
 
     private var sessionToken: MediaSessionCompat.Token? = null
 
     private var controller: MediaControllerCompat? = null
+
+    // set #showPersistentNotification to true to start notification on going
+    private fun castNewNotification() {
+        if (!started) return
+        createNotification()?.run {
+            if (showPersistentNotification) {
+                service.startForeground(NOTIFICATION_ID, this)
+            } else {
+                notificationManager?.notify(NOTIFICATION_ID, this)
+            }
+        }
+
+    }
 
     private var mediaControllerCallback: MediaControllerCompat.Callback =
             object : MediaControllerCompat.Callback() {
@@ -89,19 +103,14 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                                 currentPlayPauseAction = PlayPauseAction.BUFFER
                             }
                         }
-                        createNotification()?.run {
-                            notificationManager.notify(NOTIFICATION_ID, this)
-                        }
+                        castNewNotification()
                     }
                 }
 
                 override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
                     super.onMetadataChanged(metadata)
                     currentMetadata = metadata
-
-                    createNotification()?.run {
-                        notificationManager.notify(NOTIFICATION_ID, this)
-                    }
+                    castNewNotification()
                 }
 
                 override fun onSessionDestroyed() {
@@ -132,7 +141,6 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
 
     fun startNotifications() {
         if (started) return
-        val n = createNotification()
         val filter = IntentFilter()
         controller!!.registerCallback(mediaControllerCallback)
         filter.addAction(ACTION_PAUSE)
@@ -145,12 +153,14 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         service.registerReceiver(this, filter)
 
         started = true
-        service.startForeground(NOTIFICATION_ID, n)
+        showPersistentNotification = true
+        castNewNotification()
     }
 
     fun stopNotifications() {
         if (!started) return
         started = false
+        showPersistentNotification = false
         controller?.unregisterCallback(mediaControllerCallback)
         notificationManager.cancel(NOTIFICATION_ID)
         service.unregisterReceiver(this)
@@ -161,13 +171,18 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         intent?.run {
             val action = intent.getAction()
             info("Received intent with action " + action)
+
+            var showNotification = true
             when (action) {
                 ACTION_PAUSE -> {
                     transportControls?.pause()
                     currentPlayPauseAction = PlayPauseAction.PLAY
-                    service.stopForeground(true)
+//                    service.stopForeground(true)
+                    service.stopForeground(false)
+                    showPersistentNotification = false
                 }
                 ACTION_PLAY -> {
+                    showPersistentNotification = true
                     transportControls?.play()
                     currentPlayPauseAction = PlayPauseAction.PAUSE
                 }
@@ -176,6 +191,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 }
                 ACTION_STOP -> {
                     transportControls?.stop()
+                    showPersistentNotification = false
                     stopNotifications()
                     service.shutdownService()
                 }
@@ -183,7 +199,6 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
 
                 ACTION_SHOW_VIDEO_PLAYER -> {
                     transportControls?.sendCustomAction(ACTION_SHOW_VIDEO_PLAYER, null)
-
                 }
                 ACTION_SHOW_IN_SOURCE_APP -> {
                     transportControls?.sendCustomAction(ACTION_SHOW_IN_SOURCE_APP, null)
@@ -193,9 +208,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                     error("No intent found with action: " + action)
                 }
             }
-            createNotification()?.run {
-                notificationManager.notify(NOTIFICATION_ID, this)
-            }
+            castNewNotification()
         }
     }
 
@@ -227,7 +240,9 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
             createNotificationChannel()
         }
         val b = NotificationCompat.Builder(service, CHANNEL_ID)
+        b.setDefaults(Notification.DEFAULT_ALL)
         addActions(b)
+
         val title = currentMetadata?.description?.title?.toString() ?: "loading title ..."
         b.setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()
                 .setShowActionsInCompactView(1, 2, 3)
@@ -235,8 +250,13 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 .setCancelButtonIntent(stopIntent)
                 .setMediaSession(sessionToken))
                 .setDeleteIntent(stopIntent)
+                .setShowWhen(false)
+                .setNumber(3)
 //                .setColor(mNotificationColor)
                 .setPriority(100)
+                .setOngoing(false)
+                .setAutoCancel(false)
+
                 .setSubText(getPlaybackStateText())
 //                .setTicker("ticker")
 
@@ -248,6 +268,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                         .fromHtml("<b>$title</b>"))
 //                .setContentText(currentMetadata?.description?.subtitle ?: "subtitle")
 
+
         val metaArtBitmap = currentMetadata?.getBitmap(METADATA_KEY_ALBUM_ART)
         if (metaArtBitmap == null) {
             b.setLargeIcon(BitmapFactory.decodeResource(service.resources,
@@ -255,7 +276,8 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
         } else {
             b.setLargeIcon(metaArtBitmap)
         }
-        return b.build()
+        val n = b.build()
+        return n
     }
 
     private fun createContentIntent(): PendingIntent? {

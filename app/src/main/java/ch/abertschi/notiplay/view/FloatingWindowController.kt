@@ -51,7 +51,7 @@ class FloatingWindowController(val c: Context, val service: Service) : Broadcast
     }
 
     fun isFullscreen() = isFullScreen
-
+    fun isVisible() = floatingWindow?.showFloatingWindow
     private var isFullScreen = false
     private var floatingWindow: FloatingWindow? = null
     private var started: Boolean = false
@@ -158,6 +158,12 @@ class FloatingWindowController(val c: Context, val service: Service) : Broadcast
     fun toggleVisible() {
         if (!isFullscreen()) {
             floatingWindow?.toggleVisible()
+        }
+    }
+
+    fun setVisible(state: Boolean) {
+        if (!isFullscreen()) {
+            floatingWindow?.makeVisible(state)
         }
     }
 

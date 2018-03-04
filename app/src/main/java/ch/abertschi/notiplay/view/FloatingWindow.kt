@@ -26,7 +26,7 @@ import kotlin.math.roundToInt
 class FloatingWindow(context: Context, val controller: FloatingWindowController) : InterceptTouchFrameLayout(context) {
 
     val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    private var showFloatingWindow: Boolean = true
+     var showFloatingWindow: Boolean = true
 
     private var allowScroll: Boolean = false
     private var scaleFactor = 1f

@@ -79,6 +79,7 @@ public class InterceptTouchFrameLayout extends FrameLayout {
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         boolean stealTouchEvent = mInterceptTouchEventListener.onInterceptTouchEvent(this, ev, mDisallowIntercept);
         return stealTouchEvent && !mDisallowIntercept || super.onInterceptTouchEvent(ev);
+//        return super.onInterceptTouchEvent(ev);
     }
 
     @Override

@@ -3,15 +3,13 @@ package ch.abertschi.notiplay.view
 import android.animation.LayoutTransition
 import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.Canvas
+import android.content.res.Configuration.ORIENTATION_LANDSCAPE
 import android.graphics.PixelFormat
 import android.os.Build
 import android.support.v4.view.animation.FastOutSlowInInterpolator
 import android.util.DisplayMetrics
 import android.view.*
 import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-import android.view.animation.Animation
-import android.view.animation.Transformation
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import org.jetbrains.anko.padding
@@ -26,7 +24,7 @@ import kotlin.math.roundToInt
 class FloatingWindow(context: Context, val controller: FloatingWindowController) : InterceptTouchFrameLayout(context) {
 
     val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-     var showFloatingWindow: Boolean = true
+    var showFloatingWindow: Boolean = true
 
     private var allowScroll: Boolean = false
     private var scaleFactor = 1f
@@ -36,12 +34,26 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
     private var viewPortInitOrientation: Int = 0
 
     private var layoutParams: WindowManager.LayoutParams? = null
-    private var storedLayoutParamsX: Int = 0
-    private var storedLayoutParamsY: Int = 0
-    private var storedLayoutParamsWidth: Int = 0
-    private var storedLayoutParamsHeight: Int = 0
-    private var actionScalingActive = false
 
+//    private var actionScalingActive = false
+
+    enum class State {
+        SMALL_FLOATING,
+        HALF_SCREEN,
+        INVISIBLE,
+        FULLSCREEN
+
+    }
+
+    lateinit var stateFloatScreen: StateComposition
+    lateinit var stateHalfScreen: StateComposition
+    lateinit var stateInvisible: StateComposition
+    lateinit var stateActive: StateComposition
+    lateinit var stateFullscreen: StateComposition
+
+    data class StateComposition(val state: State, var height: Int, var width: Int,
+                                var x: Int, var y: Int, var canMove: Boolean, var canAlignToGrid: Boolean,
+                                var canDelegateTouch: Boolean, var canScroll: Boolean)
 
 
     private var lastTouchX: Float = 0f
@@ -55,7 +67,6 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
     private val widthScale = (864.0 / 1652.0)
 
-    //    var onFloatingWindowAction: (() -> Unit)? = null
     var onDoubleTab: (() -> Unit)? = null
 
     private lateinit var currentChildView: View
@@ -70,14 +81,12 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
     fun makeVisible(state: Boolean) {
         showFloatingWindow = state
+
         layoutParams?.run {
             if (state) {
-                this.alpha = 1.0f
-                this.height = storedLayoutParamsHeight
-                this.width = storedLayoutParamsWidth
+                applyLayout(stateActive)
             } else {
-                this.height = 0
-                this.width = 0
+                applyLayout(stateInvisible)
             }
         }
         windowManager.updateViewLayout(this, layoutParams)
@@ -97,6 +106,20 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
     fun stopView() {
         windowManager?.removeView(this)
+    }
+
+    fun applyLayout(stateComposition: StateComposition) {
+        layoutParams?.run {
+            layoutParams?.gravity = Gravity.LEFT or Gravity.TOP
+            layoutParams?.x = stateComposition.x
+            layoutParams?.y = stateComposition.y
+            layoutParams?.width = stateComposition.width
+            layoutParams?.height = stateComposition.height
+            padding = 0
+            horizontalMargin = 0f
+            verticalMargin = 0f
+        }
+        this.allowScroll = stateComposition.canScroll
     }
 
     fun loadLayout(childView: View) {
@@ -125,30 +148,60 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         _viewPortWidth = displayMetrics.widthPixels
 
         viewPortInitOrientation = resources.configuration.orientation
-
-        layoutParams?.run {
-            var width = 0
-            if (_viewPortHeight < _viewPortWidth) {
-                // wide
-                width = (_viewPortHeight / 2.0).roundToInt()
-            } else {
-                // portrait mode
-                width = (_viewPortWidth / 2.0).roundToInt()
-            }
-
-            layoutParams?.gravity = Gravity.LEFT or Gravity.TOP
-            layoutParams?.x = _viewPortWidth
-            layoutParams?.y = 0
-            showFloatingWindow = true
-            layoutParams?.width = if (showFloatingWindow) width else 0
-            layoutParams?.height = if (showFloatingWindow) (width * widthScale).toInt() else 0
-            storedLayoutParamsHeight = this.height
-            storedLayoutParamsWidth = this.width
-            padding = 0
-            horizontalMargin = 0f
-            verticalMargin = 0f
-
+        var fullscreenWidth = 0
+        var fullscreenHeight = 0
+        if (viewPortInitOrientation == ORIENTATION_LANDSCAPE) {
+            fullscreenWidth = _viewPortWidth
+            fullscreenHeight = _viewPortHeight
+        } else {
+            fullscreenHeight = _viewPortWidth
+            fullscreenWidth = _viewPortHeight
         }
+
+        var floatingWidth = 0
+        if (_viewPortHeight < _viewPortWidth) {
+            // wide
+            floatingWidth = (_viewPortHeight / 2.0).roundToInt()
+
+        } else {
+            // portrait mode
+            floatingWidth = (_viewPortWidth / 2.0).roundToInt()
+        }
+
+        stateFloatScreen = StateComposition(State.SMALL_FLOATING,
+                (floatingWidth * widthScale).toInt(), floatingWidth,
+                0, 0,
+                true,
+                true,
+                false,
+                false)
+
+        stateHalfScreen = StateComposition(State.HALF_SCREEN, _viewPortHeight / 3, _viewPortWidth,
+                0, getStatusBarHeight(),
+                false,
+                false,
+                true,
+                true)
+
+        stateInvisible = StateComposition(State.INVISIBLE,
+                0, 0,
+                0, 0,
+                false,
+                false,
+                false,
+                false)
+
+        stateFullscreen = StateComposition(State.FULLSCREEN,
+                fullscreenHeight, fullscreenWidth,
+                0, 0,
+                false,
+                false,
+                true,
+                true)
+
+        applyLayout(stateHalfScreen)
+        stateActive = stateHalfScreen
+
 
         this.layoutTransition = LayoutTransition()
 
@@ -225,76 +278,36 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
     }
 
 
-    fun storeLayoutParams() {
-        storedLayoutParamsX = layoutParams!!.x
-        storedLayoutParamsY = layoutParams!!.y
-        storedLayoutParamsWidth = layoutParams!!.width
-        storedLayoutParamsHeight = layoutParams!!.height
+    fun storeLayoutParams(stateComposition: StateComposition) {
+        if (stateComposition.state == State.HALF_SCREEN) return
+        stateComposition.x = layoutParams!!.x
+        stateComposition.y = layoutParams!!.y
     }
 
     fun setSizeToHalfScreen() {
-        val size = getViewCorrectedViewPortSize()
-
-        this.allowScroll = false
-
-        layoutParams?.x = 0
-        layoutParams?.y = 0
-        layoutParams?.height = size.second / 3
-        layoutParams?.width = size.first
-        layoutParams?.verticalMargin = 0f
-        layoutParams?.horizontalMargin = 0f
-        this.scaleX = 1f
-        this.scaleY = 1f
-
+        applyLayout(stateHalfScreen)
+        stateActive = stateHalfScreen
+        windowManager.updateViewLayout(this, layoutParams)
     }
 
     fun setSizeToFullScreen() {
-        println("confirmed fullscreen")
-        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val displayMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
-
-        val width = displayMetrics.heightPixels
-        val height = displayMetrics.widthPixels
-
-        this.allowScroll = true
-
-        layoutParams?.x = 0
-        layoutParams?.y = 0
-        layoutParams?.height = width
-        layoutParams?.width = height
-        layoutParams?.verticalMargin = 0f
-        layoutParams?.horizontalMargin = 0f
-        this.scaleX = 1f
-        this.scaleY = 1f
-
+        applyLayout(stateFullscreen)
+        stateActive = stateFloatScreen
         windowManager.updateViewLayout(this, layoutParams)
     }
 
 
-    fun setSizeToFloatingWindow() {
+    fun setSizeToFloatingWindow(alignFloatingWindows: Boolean = true) {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        allowScroll = false
 
-//        val i = Intent(context, HorizontalFullscreenActivity::class.java)
-//        i.addFlags(FLAG_ACTIVITY_SINGLE_TOP)
-//        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-//        i.action = HorizontalFullscreenActivity.ACTION_QUIT_ACTIVITY
-//        startActivity(context, i, null)
-//        // activity for result?
-
-        layoutParams!!.x = storedLayoutParamsX
-        layoutParams!!.y = storedLayoutParamsY
-        layoutParams!!.width = (storedLayoutParamsWidth).toInt()
-        layoutParams!!.height = (storedLayoutParamsHeight).toInt()
-        println(layoutParams!!.width)
-        println(layoutParams!!.height)
-        println(layoutParams!!.x)
-        println(layoutParams!!.y)
+        applyLayout(stateFloatScreen)
+        stateActive = stateFloatScreen
         windowManager.updateViewLayout(this, layoutParams)
 
+        if (alignFloatingWindows) {
+            alignFloatingWindow()
+        }
     }
-
 
     public override fun overScrollBy(deltaX: Int, deltaY: Int, scrollX: Int, scrollY: Int,
                                      scrollRangeX: Int, scrollRangeY: Int, maxOverScrollX: Int,
@@ -310,7 +323,6 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
     override fun computeScroll() {
         if (allowScroll) return super.computeScroll()
-
     }
 
     private fun getStatusBarHeight(): Int {
@@ -319,163 +331,30 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         if (resourceId > 0) {
             result = resources.getDimensionPixelSize(resourceId)
         }
-        return result
-    }
-
-    override fun onDraw(canvas: Canvas?) {
-        super.onDraw(canvas)
-//        canvas?.saveLayerAlpha(0f, 0f, canvas!!.getWidth().toFloat(), canvas!!.getHeight().toFloat(), 10, Canvas.ALL_SAVE_FLAG);
-//        println("ondraw")
-        canvas?.run {
-            //            canvas.save()
-            canvas.scale(scaleFactor, scaleFactor)
-//            canvas.restore()
-        }
-
-
-    }
-
-    private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
-
-        override fun onDown(e: MotionEvent): Boolean {
-            return false
-        }
-
-        override fun onDoubleTap(e: MotionEvent): Boolean {
-            val x = e.x
-            val y = e.y
-
-
-            onDoubleTab?.invoke()
-
-            return true
-        }
-    }
-
-    private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        override fun onScaleBegin(detector: ScaleGestureDetector?): Boolean {
-            return super.onScaleBegin(detector)
-        }
-
-        override fun onScaleEnd(detector: ScaleGestureDetector?) {
-            super.onScaleEnd(detector)
-            println("scale ended")
-            println("${layoutParams?.width} / ${layoutParams?.height}")
-
-//            this@FloatingWindow.scaleX = 1f
-//            this@FloatingWindow.scaleY = 1f
-            this@FloatingWindow.invalidate()
-            layoutParams?.run {
-                //                width =
-//                height =
-//                windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
-                println("${layoutParams?.width} / ${layoutParams?.height}")
-//                scaleX = 1f
-//                scaleY = 1f
-//                width = width * scaleFactor
-            }
-        }
-
-        override fun onScale(detector: ScaleGestureDetector): Boolean {
-//            return false
-            if (controller.isFullscreen()) return false
-            actionScalingActive = true
-            scaleFactor *= detector.scaleFactor
-            scaleFactor = Math.max(0.5f, Math.min(scaleFactor, 1.0f))
-//            layoutParams?.s
-
-
-            var newWidth = (storedLayoutParamsWidth * scaleFactor).toInt()
-            var newHeight = (newWidth * widthScale).toInt()
-
-            this@FloatingWindow?.layoutParams?.run {
-
-
-                width = newWidth
-                height = newHeight
-                windowManager.updateViewLayout(this@FloatingWindow, this)
-            }
-
-//            this@FloatingWindow.scaleX = scaleFactor
-//            this@FloatingWindow.scaleY = scaleFactor
-            this@FloatingWindow.pivotX = 0f
-            this@FloatingWindow.pivotY = 0f
-            println(scaleFactor)
-            return true
-        }
-    }
-
-
-    inner class ResizeAnimation(var view: View, val targetHeight: Int, var startHeight: Int,
-                                var targetWidth: Int, var startWidth: Int) : Animation() {
-
-        override fun applyTransformation(interpolatedTime: Float, t: Transformation) {
-            val newHeight = (startHeight + targetHeight * interpolatedTime).toInt()
-            val newWidth = (startHeight + targetHeight * interpolatedTime).toInt()
-            //to support decent animation, change new heigt as Nico S. recommended in comments
-            //int newHeight = (int) (startHeight+(targetHeight - startHeight) * interpolatedTime);
-            view.layoutParams.height = newHeight
-            view.requestLayout()
-        }
-
-        override fun initialize(width: Int, height: Int, parentWidth: Int, parentHeight: Int) {
-            super.initialize(width, height, parentWidth, parentHeight)
-        }
-
-        override fun willChangeBounds(): Boolean {
-            return true
-        }
-    }
-
-    //    val targetX: Int, var startX: Int, var targetY: Int, var startY: Int
-    inner class MoveAnimation(var view: FloatingWindow) : Animation() {
-
-        override fun applyTransformation(interpolatedTime: Float, t: Transformation) {
-            println("apply trns")
-//            val newX = (startX + targetX * interpolatedTime).toInt()
-//            val newY = (startY + targetY * interpolatedTime).toInt()
-//            //to support decent animation, change new heigt as Nico S. recommended in comments
-//            //int newHeight = (int) (startHeight+(targetHeight - startHeight) * interpolatedTime);
-//            view.layoutParams?.x = newX
-//            view.layoutParams?.y = newY
-//            view.requestLayout()
-//            windowManager.updateViewLayout(view, view!!.layoutParams)
-        }
-
-        override fun initialize(width: Int, height: Int, parentWidth: Int, parentHeight: Int) {
-            println("###INIT")
-            super.initialize(width, height, parentWidth, parentHeight)
-        }
-
-        override fun willChangeBounds(): Boolean {
-            println("###WILLCHANGE")
-            return true
-        }
+        return (result / 3.0 * 2).toInt()
     }
 
     private inner class TouchListener : OnInterceptTouchEventListener {
         override fun onInterceptTouchEvent(view: InterceptTouchFrameLayout?, ev: MotionEvent?,
                                            disallowIntercept: Boolean): Boolean {
-            return true
+            return onTouchEvent(view, ev)
         }
 
         override fun onTouchEvent(view: InterceptTouchFrameLayout?, event: MotionEvent?): Boolean {
-
             when (event!!.action) {
                 MotionEvent.ACTION_DOWN -> {
                     val t = System.currentTimeMillis()
                     val delta = t - lastTapMs
-                    if (delta < doubleTapThresholdMs) {
+                    // dont register double tab when touched lower 20% of screen
+                    if (delta < doubleTapThresholdMs &&
+                            (stateActive.state != State.SMALL_FLOATING ||
+                                    (1.0 * event.y / stateActive.height) <.8)) {
                         onDoubleTab?.invoke()
-
-                        true
-
                         return true
                     }
                     lastTapMs = t
                     lastTouchX = event.x
                     lastTouchY = event.y
-                    println(getViewCorrectedViewPortSize().first)
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val w = layoutParams!!.width
@@ -483,53 +362,60 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
                     val screenSize = getViewCorrectedViewPortSize()
                     val padding = 0
 
+                    val convertToFloatingWindowThreshold = 40
 
-
-                    isAlphaActive = false
-                    if (!controller.isFullscreen() && controller.allowMoveOut) {
-                        isAlphaActive = true
-                        if (event.rawX - event.x <= padding) {
-                            val a = (event.x) / w
-                            this@FloatingWindow.alpha = a
-                        } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
-                                        <= padding)) {
-                            val a = (w - event.x) / w
-                            println("got " + a)
-                            this@FloatingWindow.alpha = a
-
-                        } else if (event.rawY - event.y <= padding) {
-                            this@FloatingWindow.alpha = event.y / h
-
-                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
-                                        <= padding)) {
-                            this@FloatingWindow.alpha = (h - event.y) / h
-                        } else {
-                            this@FloatingWindow.alpha = 1f
-                            isAlphaActive = false
-                        }
-                    }
-
-                    if (actionScalingActive) {
+                    if (stateActive.state == State.HALF_SCREEN && event.y - lastTouchY > 100) {
+                        stateFloatScreen.y = (event.rawY - stateFloatScreen.height / 2).toInt()
+                        stateFloatScreen.x = (event.rawX - stateFloatScreen.width / 2).toInt()
+                        setSizeToFloatingWindow(alignFloatingWindows = false)
                         return true
-                    } else {
-                        layoutParams?.y = (event.rawY - lastTouchY).toInt()
-                        layoutParams?.x = (event.rawX - lastTouchX).toInt()
-                        windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
                     }
+
+                    if (!stateActive.canMove) return false
+//                    isAlphaActive = false
+//                    if (!controller.isFullscreen() && controller.allowMoveOut) {
+//                        isAlphaActive = true
+//                        if (event.rawX - event.x <= padding) {
+//                            val a = (event.x) / w
+//                            this@FloatingWindow.alpha = a
+//                        } else if ((screenSize.first - (event.rawX + w - event.x).absoluteValue
+//                                        <= padding)) {
+//                            val a = (w - event.x) / w
+//                            println("got " + a)
+//                            this@FloatingWindow.alpha = a
+//
+//                        } else if (event.rawY - event.y <= padding) {
+//                            this@FloatingWindow.alpha = event.y / h
+//
+//                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
+//                                        <= padding)) {
+//                            this@FloatingWindow.alpha = (h - event.y) / h
+//                        } else {
+//                            this@FloatingWindow.alpha = 1f
+//                            isAlphaActive = false
+//                        }
+//                    }
+//                    if (actionScalingActive) {
+//                        return true
+//                    } else {
+                        stateActive.y = (event.rawY - lastTouchY).toInt()
+                        stateActive?.x = (event.rawX - lastTouchX).toInt()
+                        applyLayout(stateActive)
+//                        windowManager.updateViewLayout(this, layoutParams)
+                        windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+//                    }
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (isAlphaActive) {
-                        makeVisible(false)
-                    } else {
-                        if (controller?.allowPositionCorrection) {
+//                    if (isAlphaActive) {
+//                        makeVisible(false)
+//                    } else {
+                        if (stateActive.canAlignToGrid)
                             alignFloatingWindow()
-                        }
-                    }
-
-                    actionScalingActive = false
+//                    }
+//                    actionScalingActive = false
                 }
             }
-            return !controller.isFullscreen()
+            return !stateActive.canDelegateTouch
         }
 
     }

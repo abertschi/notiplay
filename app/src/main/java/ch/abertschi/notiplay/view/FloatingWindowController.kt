@@ -114,7 +114,7 @@ class FloatingWindowController(val c: Context, val service: Service) : Broadcast
         allowPositionCorrection = false
 
         if (windowSizeState == WindowSizeState.FLOATING) {
-            floatingWindow?.storeLayoutParams()
+            floatingWindow?.storeLayoutParams(floatingWindow!!.stateActive)
         }
 
         val dialogIntent = Intent(c, HorizontalFullscreenActivity::class.java)
@@ -170,7 +170,8 @@ class FloatingWindowController(val c: Context, val service: Service) : Broadcast
     fun setHalfscreen() {
         allowMoveOut = false
         allowPositionCorrection = false
-        floatingWindow?.storeLayoutParams()
+        floatingWindow?.storeLayoutParams(floatingWindow!!.stateActive)
+//        floatingWindow?.storeLayoutParams(floatingWindow?.storeLayoutParams(floatingWindow!!.stateActive))
         floatingWindow?.setSizeToHalfScreen()
         windowSizeState = WindowSizeState.HALFSCREEN
 //        floatingWindow?.

@@ -46,10 +46,13 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+
+        println("START FROM SERVICE: ${intent!!.action}")
         if (intent != null && intent.action == ACTION_INIT_WITH_ID) {
             intent.getStringExtra(EXTRA_VIDEO_ID)?.run {
                 playVideoId(this)
-                checkConnectivity() // TODO
+                if (connCheck == null)
+                    checkConnectivity() // TODO
             }
         }
         return START_NOT_STICKY
@@ -87,7 +90,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     fun shutdownService() {
         val myService = Intent(this, this::class.java)
         stopService(myService)
-        
+
     }
 
     override fun onDestroy() {

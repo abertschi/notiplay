@@ -57,7 +57,7 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
     private var lastTouchX: Float = 0f
     private var lastTouchY: Float = 0f
-
+    var isVisible = true
     private var actionUpX: Int = 0
     private var actionUpY: Int = 0
 
@@ -74,16 +74,13 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
 
     fun toggleVisible() {
-//        makeVisible(!showFloatingWindow)
+        makeVisible(!isVisible)
     }
 
 
     fun makeVisible(state: Boolean) {
-        if (state) {
-            applyLayout(stateActive)
-        } else {
-            applyLayout(stateInvisible)
-        }
+        isVisible = state
+        applyLayout(stateActive)
         windowManager.updateViewLayout(this, layoutParams)
     }
 
@@ -108,8 +105,8 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         layoutParams?.gravity = Gravity.LEFT or Gravity.TOP
         layoutParams?.x = stateComposition.x
         layoutParams?.y = stateComposition.y
-        layoutParams?.width = stateComposition.width
-        layoutParams?.height = stateComposition.height
+        layoutParams?.width = if (isVisible) stateComposition.width else 0
+        layoutParams?.height = if (isVisible) stateComposition.height else 0
         layoutParams?.horizontalMargin = 0f
         layoutParams?.verticalMargin = 0f
 
@@ -347,8 +344,8 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
         override fun onTouchEvent(view: InterceptTouchFrameLayout?, event: MotionEvent?): Boolean {
 
-            println("ON TOUCHE")
-            println("${stateActive.state} ${event!!.action} ///// ${stateActive.y}")
+//            println("ON TOUCHE")
+//            println("${stateActive.state} ${event!!.action} ///// ${stateActive.y}")
 
             when (event!!.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -386,8 +383,8 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
                     if (stateActive.state == State.HALF_SCREEN && event.y - lastTouchY > 100) {
                         stateFloatScreen.y = (event.rawY - stateFloatScreen.height / 2).toInt()
                         stateFloatScreen.x = (event.rawX - stateFloatScreen.width / 2).toInt()
-                        println("GOT HEREEEE")
-                        println("###0")
+//                        println("GOT HEREEEE")
+//                        println("###0")
                         setSizeToFloatingWindow(alignFloatingWindows = false)
                         return true
                     }
@@ -423,11 +420,11 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
                     if (stateActive!!.state != State.HALF_SCREEN) {
                         // TODO: this is uggly
-                        println("###1")
+//                        println("###1")
                         stateActive.y = (event.rawY - lastTouchY).toInt()
                         stateActive?.x = (event.rawX - lastTouchX).toInt()
                     }
-                    println("apply layout to ${stateActive.state} with ${stateActive.y}")
+//                    println("apply layout to ${stateActive.state} with ${stateActive.y}")
                     applyLayout(stateActive)
 //                        windowManager.updateViewLayout(this, layoutParams)
                     windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
@@ -444,14 +441,14 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
                 }
             }
             // hack!!
-            if (stateActive.state == State.HALF_SCREEN && stateActive.y != layoutParams!!.y) {
-                setSizeToHalfScreen()
-                windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
-                this@FloatingWindow.onTouchEvent(event)
-                this@FloatingWindow.performClick()
-                this@FloatingWindow.dispatchTouchEvent(event)
-            }
-            println("state: ${stateActive.state} / x/y : ${stateActive.y} / ${layoutParams!!.y}")
+//            if (stateActive.state == State.HALF_SCREEN && stateActive.y != layoutParams!!.y) {
+//                setSizeToHalfScreen()
+//                windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+//                this@FloatingWindow.onTouchEvent(event)
+//                this@FloatingWindow.performClick()
+//                this@FloatingWindow.dispatchTouchEvent(event)
+//            }
+//            println("state: ${stateActive.state} / x/y : ${stateActive.y} / ${layoutParams!!.y}")
 
             return !stateActive.canDelegateTouch
         }

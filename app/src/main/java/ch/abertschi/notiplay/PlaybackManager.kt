@@ -149,7 +149,6 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
     }
 
     override fun updatePlaybackPosition(seconds: Int) {
-        info { "update position: " + seconds }
         val pStateCompat = PlaybackStateCompat.Builder()
                 .setState(player.getState(), seconds.toLong() * 1000,
                         1.0f, SystemClock.elapsedRealtime()).build()
@@ -171,7 +170,7 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
             it()
             player.playerPlay()
         }
-        tasksOnPlayerReady?.clear()
+        tasksOnPlayerReady = ArrayList()
     }
 
 

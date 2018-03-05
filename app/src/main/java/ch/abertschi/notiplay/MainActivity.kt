@@ -100,11 +100,19 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             grantPermission()
         }
+        processIntent()
 
+
+
+
+
+    }
+
+    fun processIntent() {
         val notiIntent = Intent(this@MainActivity, PlaybackService::class.java)
         notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
-        println(intent.action)
 
+        println(intent.action)
 
         if (intent.action == Intent.ACTION_SEND) {
             val videoId: String? = getVideoId(intent)
@@ -113,20 +121,31 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "No video found :/", Toast.LENGTH_SHORT).show()
             }
             notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, videoId)
-            notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            println(videoId)
+            notiIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            println("LOADING: " + videoId)
             startService(notiIntent)
             ActivityCompat.finishAffinity(this)
             return
 
         } else {
             notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, "-CzBYn7iRSI")
-            notiIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            notiIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
             startService(notiIntent)
             ActivityCompat.finishAffinity(this)
             setContentView(R.layout.activity_main)
         }
+    }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        println("intent: " + intent?.action)
+        this.intent = intent
+
+        println(intent?.getStringExtra(Intent.EXTRA_TEXT))
+
+
+
+        processIntent()
     }
 
     fun foo() {

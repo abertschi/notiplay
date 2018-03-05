@@ -37,7 +37,7 @@ class FloatingWindowController(val c: Context, val service: Service) : Broadcast
     }
 
     fun isFullscreen() = floatingWindow?.stateActive?.state == FloatingWindow.State.FULLSCREEN
-    fun isVisible() = floatingWindow?.stateActive?.state == FloatingWindow.State.INVISIBLE
+    fun isVisible() = floatingWindow!!.isVisible
 
     //    private var isFullScreen = false
     private var floatingWindow: FloatingWindow? = null

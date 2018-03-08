@@ -53,6 +53,7 @@
         <service
             android:name=".intercept.YtNotificationListener2"
             android:label="noti2"
+            android:process=":background"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService"/>
@@ -61,7 +62,7 @@
 
         <service
             android:enabled="true"
-            android:process=":accessibilityservice"
+            android:process=":background"
             android:name=".intercept.YtAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>

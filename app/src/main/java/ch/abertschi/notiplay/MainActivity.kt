@@ -21,8 +21,6 @@ import org.jetbrains.anko.doAsync
 import java.util.*
 
 
-
-
 class MainActivity : AppCompatActivity() {
 
     // todo:
@@ -30,6 +28,33 @@ class MainActivity : AppCompatActivity() {
     // add media session and notification
 
     var OVERLAY_PERMISSION_REQ_CODE = 1234
+
+    companion object {
+        fun getVideoIdFromUrl(url: String): String? {
+            println(url)
+            val g = Regex("[?&]v=([0-9a-zA-Z-_]*)").find(url) // v?=
+            val g2 = Regex("youtu.be/([0-9a-zA-Z-_]*)").find(url) // youtu.be links
+            val g3 = Regex("youtube.com/embed/([0-9a-zA-Z-_]*)").find(url) // /embed/
+
+            if (g?.groups?.size ?: 0 > 1) {
+                val id = g!!.groups[1]!!.value
+                println(id)
+                return id
+            }
+            if (g2?.groups?.size ?: 0 > 1) {
+                val id = g2!!.groups[1]!!.value
+                println(id)
+                return id
+            }
+
+            if (g3?.groups?.size ?: 0 > 1) {
+                val id = g3!!.groups[1]!!.value
+                println(id)
+                return id
+            }
+            return null
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.M)
     fun grantPermission() {
@@ -41,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val RC_AUTHORIZE_CONTACTS =  10
+    private val RC_AUTHORIZE_CONTACTS = 10
 
     @TargetApi(Build.VERSION_CODES.M)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -66,29 +91,9 @@ class MainActivity : AppCompatActivity() {
             return null
 
         val url = intent.getStringExtra(Intent.EXTRA_TEXT)
-        println(url)
-        val g = Regex("[?&]v=([0-9a-zA-Z-_]*)").find(url) // v?=
-        val g2 = Regex("youtu.be/([0-9a-zA-Z-_]*)").find(url) // youtu.be links
-        val g3 = Regex("youtube.com/embed/([0-9a-zA-Z-_]*)").find(url) // /embed/
-
-        if (g?.groups?.size ?: 0 > 1) {
-            val id = g!!.groups[1]!!.value
-            println(id)
-            return id
-        }
-        if (g2?.groups?.size ?: 0 > 1) {
-            val id = g2!!.groups[1]!!.value
-            println(id)
-            return id
-        }
-
-        if (g3?.groups?.size ?: 0 > 1) {
-            val id = g3!!.groups[1]!!.value
-            println(id)
-            return id
-        }
-        return null
+        return getVideoIdFromUrl(url)
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,9 +106,6 @@ class MainActivity : AppCompatActivity() {
             grantPermission()
         }
         processIntent()
-
-
-
 
 
     }

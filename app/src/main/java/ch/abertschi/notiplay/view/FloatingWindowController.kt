@@ -9,6 +9,8 @@ import android.support.v4.content.ContextCompat.startActivity
 import android.view.View
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
+import org.jetbrains.anko.runOnUiThread
+import org.jetbrains.anko.toast
 
 /**
  * Created by abertschi on 23.02.18.
@@ -147,6 +149,14 @@ class FloatingWindowController(val c: Context, val service: Service) : Broadcast
         if (!isFullscreen()) {
             floatingWindow?.makeVisible(state)
         }
+    }
+
+
+    fun showHidingFloatingWindowMessage() {
+        c.runOnUiThread {
+            c.toast("Hiding floating window")
+        }
+
     }
 
     fun setHalfscreen() {

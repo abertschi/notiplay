@@ -8,31 +8,23 @@ import android.support.annotation.RequiresApi
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import org.jetbrains.anko.AnkoLogger
-import android.content.Intent
 import android.view.accessibility.AccessibilityNodeInfo
-import ch.abertschi.notiplay.NotiplayActivity
-import ch.abertschi.notiplay.PlaybackService
-import ch.abertschi.notiplay.getVideoIdFromUrl
+import org.jetbrains.anko.info
 
 
 /**
  * Created by abertschi on 25.02.18.
  */
-class YtAccessibilityService : AccessibilityService(), AnkoLogger {
+class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
 
     private var performOneScrol = false
     private var capturing = false
-    private var that = this
     private var tryAgain = false
-//    private var scrollEnabled = true
-
-    val youtubeTimeSeek = Regex("^[0-9]*\\:[0-9]{2}$")
-
+    private val youtubeTimeSeek = Regex("^[0-9]*\\:[0-9]{2}$")
     private var lastUrl = ""
 
     companion object {
-        var INSTANCE: YtAccessibilityService? = null
-
+        var INSTANCE: BrowserAccessibilityService? = null
     }
 
     init {
@@ -48,7 +40,6 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
                 Log.i("Foreground App", event.getPackageName().toString());
                 if (event.packageName.toString().contains("chrome")) {
                     BrowserState.GET.onOriginPlayerInForeground(true, this)
-                    INSTANCE = this
                     capturing = true
 
                 } else {
@@ -59,18 +50,8 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
         }
     }
 
-    fun launch(url: String) {
-        val notiIntent = Intent(this, PlaybackService::class.java)
-        notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
-        notiIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-        notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(url))
-        startService(notiIntent)
-    }
-
-
     fun readUrl() {
         if (rootInActiveWindow == null) return
-
         var url: String? = null
         try {
             url = (rootInActiveWindow
@@ -82,11 +63,6 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
 
         if (url != null) {
             BrowserState.GET.updateVideoUrl(url, this)
-            if (lastUrl != url) {
-                lastUrl = url
-//                scrollEnabled = false
-//                launch(url)
-            }
         }
     }
 
@@ -106,12 +82,11 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
         gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 100, 300))
         dispatchGesture(gestureBuilder.build(), object : AccessibilityService.GestureResultCallback() {
             override fun onCompleted(gestureDescription: GestureDescription) {
-                println("performing swype up gesture")
+                info("performing swype up gesture")
                 super.onCompleted(gestureDescription)
             }
 
             override fun onCancelled(gestureDescription: GestureDescription?) {
-
                 super.onCancelled(gestureDescription)
             }
         }, null)
@@ -146,7 +121,7 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
             if (info == null)
                 return
             if (info.text != null && info.text.length > 0) {
-//                println(info.text.toString() + " class: " + info.className + " " + info.viewIdResourceName)
+//                info(info.text.toString() + " class: " + info.className + " " + info.viewIdResourceName)
                 val g = youtubeTimeSeek.find(info.text)
 
                 if (g?.groups?.size!! > 0
@@ -155,8 +130,6 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
                     val mins = Integer.valueOf(c[0])
                     val secs = Integer.valueOf(c[1])
                     val res = if (mins == 0) secs else mins * 60 + secs
-
-//                    println("FOUND INTERESTING ONE: " + res)
                     BrowserState.GET.updateSeekPosition(res, this)
                 }
             }
@@ -167,8 +140,7 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
                 child?.recycle()
             }
         } catch (e: Exception) {
-//            println(e)
-
+            info(e)
         }
     }
 

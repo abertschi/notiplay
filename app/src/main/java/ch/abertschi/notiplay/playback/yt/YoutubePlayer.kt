@@ -113,9 +113,12 @@ class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback)
     }
 
     fun execJs(command: String) {
+
         handler.post {
             println("javascript:${command}")
             youtubeWebView!!.loadUrl("javascript:${command}")
+
+
         }
     }
 

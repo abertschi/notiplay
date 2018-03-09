@@ -52,6 +52,7 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
             player.playerPlay()
         }
 
+
         override fun onSkipToNext() {
             super.onSkipToNext()
             info { "onSkipToNext" }
@@ -67,6 +68,7 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         }
 
         override fun onStop() {
+            booted = false
             player.playerStop()
             floatingWindowController?.stopFloatingWindow()
             playbackListener.onPlaybackStoped()
@@ -91,6 +93,8 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
                 playbackService.sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
                 player.playerPause()
                 floatingWindowController?.setVisible(false)
+                player.playerStop()
+                playbackService.shutdownService()
 
             } else if (action == PlaybackNotificationManager.ACTION_SHOW_VIDEO_PLAYER) {
                 playbackService.sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS))
@@ -129,6 +133,7 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         }
 
         val cmd = {
+            println("VIIDEO: ID: " + request.id)
             floatingWindowController?.setVisible(request.showPlayerUi) // todo: generalize this
             player.playVideoById(request.id)
             player.seekToPosition(request.seekPos.toInt())
@@ -174,11 +179,12 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
     }
 
     override fun onPaybackEnd() {
-        val pStateCompat = PlaybackStateCompat.Builder()
-                .setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
-                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                        1.0f, SystemClock.elapsedRealtime()).build()
-        playbackListener.onPlaybackChanged(pStateCompat)
+        mediaSessionCallback.onSeekTo(0) // we just seek to 0 for endless playback
+//        val pStateCompat = PlaybackStateCompat.Builder()
+//                .setState(PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+//                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+//                        1.0f, SystemClock.elapsedRealtime()).build()
+//        playbackListener.onPlaybackChanged(pStateCompat)
     }
 
     override fun onPlayerReady() {

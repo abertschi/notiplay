@@ -3,10 +3,9 @@
                        android:accessibilityEventTypes="typeViewClicked|typeViewFocused|typeAllMask"
                        android:accessibilityFeedbackType="feedbackSpoken"
                        android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagRequestTouchExplorationMode|flagRequestEnhancedWebAccessibility|flagReportViewIds|flagRetrieveInteractiveWindows"
+                       android:canPerformGestures="true"
                        android:canRequestTouchExplorationMode="false"
                        android:canRetrieveWindowContent="true"
                        android:notificationTimeout="100"
-                       android:canPerformGestures="true"
-                       android:settingsActivity="foo.bar.TestBackActivity"
 
     />

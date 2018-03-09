@@ -12,6 +12,7 @@ import android.view.*
 import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import org.jetbrains.anko.runOnUiThread
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -81,7 +82,10 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
     fun makeVisible(state: Boolean) {
         isVisible = state
         applyLayout(stateActive)
-        windowManager.updateViewLayout(this, layoutParams)
+        context.runOnUiThread {
+            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+        }
+
     }
 
     init {
@@ -93,11 +97,16 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         currentChildView = view
         this.removeAllViews()
         this.addView(view)
-        windowManager.updateViewLayout(this, layoutParams)
+        context.runOnUiThread {
+            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+        }
+
     }
 
     fun stopView() {
-        windowManager?.removeView(this)
+        context.runOnUiThread {
+            windowManager?.removeView(this@FloatingWindow)
+        }
     }
 
     fun applyLayout(stateComposition: StateComposition) {
@@ -202,7 +211,9 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
         this.addView(childView)
         currentChildView = childView
-        windowManager.addView(this, layoutParams)
+        context.runOnUiThread {
+            windowManager.addView(this@FloatingWindow, layoutParams)
+        }
         alignFloatingWindow()
     }
 
@@ -251,7 +262,9 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
             layoutParams?.run {
                 x = actionUpX + dx.roundToInt()
                 y = actionUpY + dy.roundToInt()
-                windowManager.updateViewLayout(this@FloatingWindow, this)
+                context.runOnUiThread {
+                    windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+                }
             }
         }
         anim.start()
@@ -278,13 +291,17 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
     fun setSizeToHalfScreen() {
         applyLayout(stateHalfScreen)
         stateActive = stateHalfScreen
-        windowManager.updateViewLayout(this, layoutParams)
+        context.runOnUiThread {
+            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+        }
     }
 
     fun setSizeToFullScreen() {
         applyLayout(stateFullscreen)
         stateActive = stateFullscreen
-        windowManager.updateViewLayout(this, layoutParams)
+        context.runOnUiThread {
+            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+        }
     }
 
 
@@ -293,7 +310,9 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
         applyLayout(stateFloatScreen)
         stateActive = stateFloatScreen
-        windowManager.updateViewLayout(this, layoutParams)
+        context.runOnUiThread {
+            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+        }
 
         if (alignFloatingWindows) {
             alignFloatingWindow()
@@ -335,6 +354,8 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
     private val doubleTab: GestureDetect = GestureDetect()
 
+    private var hideWindowOnActionUp = false
+
     private inner class TouchListener : OnInterceptTouchEventListener {
         override fun onInterceptTouchEvent(view: InterceptTouchFrameLayout?, event: MotionEvent?,
                                            disallowIntercept: Boolean): Boolean {
@@ -371,7 +392,6 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
 
                 }
-
                 MotionEvent.ACTION_MOVE -> {
                     val w = layoutParams!!.width
                     val h = layoutParams!!.height
@@ -390,6 +410,15 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
                     }
 
                     if (!stateActive.canMove) return false
+
+                    if (event.rawY - event.y <= padding) {
+                        hideWindowOnActionUp = true
+//                        this@FloatingWindow.alpha = event.y / h
+                    } else {
+                        hideWindowOnActionUp = false
+                    }
+
+
 //                    isAlphaActive = false
 //                    if (!controller.isFullscreen() && controller.allowMoveOut) {
 //                        isAlphaActive = true
@@ -427,13 +456,21 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 //                    println("apply layout to ${stateActive.state} with ${stateActive.y}")
                     applyLayout(stateActive)
 //                        windowManager.updateViewLayout(this, layoutParams)
-                    windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+                    context.runOnUiThread {
+                        windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+                    }
 //                    }
                 }
                 MotionEvent.ACTION_UP -> {
 //                    if (isAlphaActive) {
 //                        makeVisible(false)
 //                    } else {
+
+                    if (hideWindowOnActionUp) {
+                        controller.setVisible(false)
+                        controller.showHidingFloatingWindowMessage()
+                    }
+
                     if (stateActive.canAlignToGrid)
                         alignFloatingWindow()
 //                    }

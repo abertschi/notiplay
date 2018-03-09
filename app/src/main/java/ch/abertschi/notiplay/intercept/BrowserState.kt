@@ -11,15 +11,17 @@ import android.support.v4.app.NotificationCompat
 import ch.abertschi.notiplay.PlaybackService
 import ch.abertschi.notiplay.R
 import ch.abertschi.notiplay.getVideoIdFromUrl
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.info
 
 /**
  * Created by abertschi on 08.03.18.
  */
-class BrowserState {
+class BrowserState : AnkoLogger {
 
     private val CHANNEL_ID: String = "channid"
 
-    private var duration: Long = 0
+    private var _duration: Long = 0
     private var lastStarted: Long = 0
 
     private var startStopHash = ""
@@ -27,6 +29,8 @@ class BrowserState {
     private var originPlayerInForeground = false
 
     private var videoTitle: String? = null
+
+    private val notificationId = 188
 
     private constructor() {
     }
@@ -36,7 +40,7 @@ class BrowserState {
     }
 
     private var videoUrl: String? = null
-    private var seekPos = 0
+//    private var seekPos = 0
 
     private enum class State {
         PLAYING,
@@ -52,81 +56,92 @@ class BrowserState {
     }
 
     fun onOriginPlayerInForeground(state: Boolean, context: Context) {
+        if (!state && this.originPlayerInForeground) {
+            showNotification(context)
+        }
 
-        showNotification(context)
-//        println("player in foregrond: " + state)
+//        info("player in foregrond: " + state)
 //        if (!state && originPlayerInForeground) {
 //            // player is put to background
 //            showNotification(context)
-//            println("Player can launch here: $videoUrl at $seekPos")
+//            info("Player can launch here: $videoUrl at $seekPos")
 //        }
         originPlayerInForeground = state
 
     }
 
-    fun updateVideoUrl(url: String, context: Context) {
+    fun updateVideoUrl(url: String?, context: Context) {
+        if (url == null) return
+
         if (videoUrl != url) {
             videoUrl = url
         }
     }
 
     fun updateSeekPosition(seconds: Int, context: Context) {
-        seekPos = seconds
+        resetState(context)
+//        seekPos = seconds
+        _duration = seconds.toLong()
         showNotification(context)
-        resetState()
-
     }
 
-    fun updateVideoUrl(url: String?) {
-        if (url == null) return
-        this.videoUrl = url
-    }
+    fun updateVideoTitle(title: String?, context: Context) {
+        if (title == null) return
 
-    fun updateVideoTitle(title: String?) {
+        if (title != videoTitle) {
+            resetState(context)
+        }
         this.videoTitle = title
     }
 
     fun onPlaybackStart(hash: String, context: Context) {
-        println("starting playback counter")
+        info("starting playback counter")
         if (currentState == State.PLAYING && startStopHash == hash) return
         currentState = State.PLAYING
 
+        BrowserAccessibilityService.INSTANCE?.performSwypeUpIfInValidApp()
+
         if (startStopHash != hash) {
             startStopHash = hash
-            resetState()
+            resetState(context)
         }
         val now = System.currentTimeMillis()
         lastStarted = now
 
         showNotification(context)
-        println(" DURATION: " + getDuration())
+        info(" DURATION: " + getDuration())
 
     }
 
-    private fun resetState() {
-        println("resetting state")
-        duration = 0
+    private fun resetState(context: Context) {
+        info("resetting state")
+        _duration = 0
         currentState = State.RESET
         scrolPerformed = false
+        removeNotification(context)
+
+        if (currentState == State.PLAYING) {
+            lastStarted = System.currentTimeMillis()
+        }
 
     }
 
     fun onPlaybackPause(hash: String, context: Context) {
         showNotification(context)
-        println("pausing playback counter")
+        info("pausing playback counter")
 
         if (currentState == State.PAUSED && startStopHash == hash) return
-//        println("currenetState: $currentState, startStopHash: $startStopHash, hash: $hash")
+//        info("currenetState: $currentState, startStopHash: $startStopHash, hash: $hash")
 
         currentState = State.PAUSED
         if (startStopHash != hash) {
             startStopHash = hash
-            resetState()
+            resetState(context)
         }
         val now = System.currentTimeMillis()
-        duration += ((now - lastStarted) / 1000)
+        _duration += ((now - lastStarted) / 1000)
 
-        println(" DURATION: " + getDuration())
+        info(" DURATION: " + getDuration())
     }
 
     fun onPlaybackStop(hash: String, context: Context) {
@@ -139,41 +154,36 @@ class BrowserState {
             val now = System.currentTimeMillis()
             add = ((now - lastStarted) / 1000)
         }
-        return duration + add
+        return _duration + add
+    }
+
+    fun removeNotification(context: Context) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(notificationId)
+    }
+
+    fun getCurrentStateHash(context: Context): String {
+        return this.startStopHash
     }
 
 
     fun showNotification(context: Context) {
         if (this.videoUrl == null) return
 
-        //build notification
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel(context)
         }
 
-        val notificationId = 188
-
-//        val playbackIntent = Intent(context, PlaybackService::class.java)
-//
-//        val playPendingIntent = PendingIntent.getService(context, notificationId,
-//                playbackIntent, PendingIntent.FLAG_CANCEL_CURRENT)
-
-
         val intent = Intent(context, PlayIntentService::class.java)
         intent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(videoUrl!!))
         intent.action = PlaybackService.ACTION_INIT_WITH_ID
-        intent.putExtra(PlaybackService.EXTRA_SEEK_POS, this.seekPos.toLong())
+        intent.putExtra(PlaybackService.EXTRA_SEEK_POS, getDuration())
+        intent.putExtra(PlayIntentService.EXTRA_HASH, this.startStopHash)
         intent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")
 
         val pendingIntent = PendingIntent.getService(context, notificationId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
 
-
-//        val view = RemoteViews("ch.abertschi.notiplay", R.layout.notification)
-//        view.setOnClickPendingIntent(R.id.notification_closebtn_ib, playPendingIntent)
-//        builder.setContent(view)
-
-
-        var msg1 = "Continue playback at " + this.seekPos + " seconds"
+        var msg1 = "Continue playback at " + getDuration() + " seconds"
 
         var title = ""
         var subtitle = ""
@@ -190,7 +200,8 @@ class BrowserState {
                 .setContentTitle(title)
                 .setContentText(subtitle)
                 .setContentIntent(pendingIntent)
-                // TODO :set sound to void
+                .setAutoCancel(true)
+
                 .setOnlyAlertOnce(true)
                 .setOngoing(false)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -208,9 +219,9 @@ class BrowserState {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
             val notificationChannel = NotificationChannel(CHANNEL_ID,
-                    "headsup controls",
-                    NotificationManager.IMPORTANCE_HIGH)
-            notificationChannel.description = "notification option for playback control"
+                    "Notiplay utils",
+                    NotificationManager.IMPORTANCE_MIN)
+            notificationChannel.description = "transition from Youtube to Notiplay"
             notificationManager.createNotificationChannel(notificationChannel)
         }
     }

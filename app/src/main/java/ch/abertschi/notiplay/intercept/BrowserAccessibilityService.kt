@@ -7,9 +7,10 @@ import android.os.Build
 import android.support.annotation.RequiresApi
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import org.jetbrains.anko.AnkoLogger
 import android.view.accessibility.AccessibilityNodeInfo
+import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
+import org.jetbrains.anko.wtf
 
 
 /**
@@ -68,28 +69,34 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun performSwypeUp() {
-        val displayMetrics = resources.displayMetrics
+        try {
 
-        val middleYValue = (displayMetrics.heightPixels / 2.0).toFloat()
-        val topQuarterYValue = (displayMetrics.heightPixels / 10.0).toFloat()
-        val middleXValue = (displayMetrics.widthPixels / 2.0).toFloat()
 
-        val gestureBuilder = GestureDescription.Builder()
-        val path = Path()
-        path.moveTo(middleXValue, middleYValue - topQuarterYValue);
-        path.lineTo(middleXValue, middleYValue);
+            val displayMetrics = resources.displayMetrics
 
-        gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 100, 300))
-        dispatchGesture(gestureBuilder.build(), object : AccessibilityService.GestureResultCallback() {
-            override fun onCompleted(gestureDescription: GestureDescription) {
-                info("performing swype up gesture")
-                super.onCompleted(gestureDescription)
-            }
+            val middleYValue = (displayMetrics.heightPixels / 2.0).toFloat()
+            val topQuarterYValue = (displayMetrics.heightPixels / 10.0).toFloat()
+            val middleXValue = (displayMetrics.widthPixels / 2.0).toFloat()
 
-            override fun onCancelled(gestureDescription: GestureDescription?) {
-                super.onCancelled(gestureDescription)
-            }
-        }, null)
+            val gestureBuilder = GestureDescription.Builder()
+            val path = Path()
+            path.moveTo(middleXValue, middleYValue - topQuarterYValue);
+            path.lineTo(middleXValue, middleYValue);
+
+            gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 100, 300))
+            dispatchGesture(gestureBuilder.build(), object : AccessibilityService.GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription) {
+                    info("performing swype up gesture")
+                    super.onCompleted(gestureDescription)
+                }
+
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    super.onCancelled(gestureDescription)
+                }
+            }, null)
+        } catch (e: Exception) {
+            wtf("ouch, something went wrong in browser accessilbiity service", e)
+        }
     }
 
     fun performSwypeUpIfInValidApp() {

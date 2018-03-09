@@ -24,6 +24,8 @@ class PlayIntentService : IntentService("PlayIntentService") {
                 seekPos = BrowserState.GET.getDuration()
             }
 
+
+            notiIntent.putExtra(PlaybackService.EXTRA_SHOW_UI, intent.getBooleanExtra(PlaybackService.EXTRA_SHOW_UI, true))
             notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
             notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID,
                     intent?.getStringExtra(PlaybackService.EXTRA_VIDEO_ID))

@@ -174,14 +174,28 @@ class BrowserState : AnkoLogger {
             createNotificationChannel(context)
         }
 
-        val intent = Intent(context, PlayIntentService::class.java)
-        intent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(videoUrl!!))
-        intent.action = PlaybackService.ACTION_INIT_WITH_ID
-        intent.putExtra(PlaybackService.EXTRA_SEEK_POS, getDuration())
-        intent.putExtra(PlayIntentService.EXTRA_HASH, this.startStopHash)
-        intent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")
+        val playIntent = Intent(context, PlayIntentService::class.java)
+        playIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(videoUrl!!))
+        playIntent.action = PlaybackService.ACTION_INIT_WITH_ID
+        playIntent.putExtra(PlaybackService.EXTRA_SEEK_POS, getDuration())
+        playIntent.putExtra(PlayIntentService.EXTRA_HASH, this.startStopHash)
+        playIntent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")
 
-        val pendingIntent = PendingIntent.getService(context, notificationId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+        val audioOnlyIntent = Intent(context, PlayIntentService::class.java)
+        audioOnlyIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(videoUrl!!))
+        audioOnlyIntent.action = PlaybackService.ACTION_INIT_WITH_ID
+        audioOnlyIntent.putExtra(PlaybackService.EXTRA_SEEK_POS, getDuration())
+        audioOnlyIntent.putExtra(PlayIntentService.EXTRA_HASH, this.startStopHash)
+        audioOnlyIntent.putExtra(PlaybackService.EXTRA_SHOW_UI, false)
+        audioOnlyIntent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")
+
+        val playPendingIntent =
+                PendingIntent.getService(context, notificationId, playIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+
+        val audioOnlyPendingIntent =
+                PendingIntent.getService(context, notificationId, audioOnlyIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+
+
 
         var msg1 = "Continue playback at " + getDuration() + " seconds"
 
@@ -199,14 +213,15 @@ class BrowserState : AnkoLogger {
                 .setSmallIcon(R.drawable.abc_cab_background_internal_bg)
                 .setContentTitle(title)
                 .setContentText(subtitle)
-                .setContentIntent(pendingIntent)
+                .setContentIntent(playPendingIntent)
                 .setAutoCancel(true)
-
                 .setOnlyAlertOnce(true)
                 .setOngoing(false)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .addAction(R.drawable.common_google_signin_btn_icon_dark,
-                        "PLAY", pendingIntent)
+                        "PLAY", playPendingIntent)
+                .addAction(R.drawable.common_google_signin_btn_icon_dark,
+                        "AUDIO ONLY", audioOnlyPendingIntent)
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(notificationId, b.build())

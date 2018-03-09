@@ -14,11 +14,16 @@ class PlayIntentService : IntentService("PlayIntentService") {
         Log.i("myapp", "I got this awesome intent and will now do stuff in the background!")
         // .... do what you like
 
-        val notiIntent = Intent(this, PlaybackService::class.java)
-        notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
-        notiIntent.putExtra(PlaybackService.EXTRA_SEEK_POS,
-                intent?.getLongExtra(PlaybackService.EXTRA_SEEK_POS, 0))
-        notiIntent.putExtra(intent?.getStringExtra(PlaybackService.EXTRA_PLAYBACK_STATE), "play")
+        if (intent?.action == PlaybackService.ACTION_INIT_WITH_ID) {
+            val notiIntent = Intent(this, PlaybackService::class.java)
+            notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
+            notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, intent?.getStringExtra(PlaybackService.EXTRA_VIDEO_ID))
+            notiIntent.putExtra(PlaybackService.EXTRA_SEEK_POS,
+                    intent?.getLongExtra(PlaybackService.EXTRA_SEEK_POS, 0))
+            notiIntent.putExtra(intent?.getStringExtra(PlaybackService.EXTRA_PLAYBACK_STATE), "play")
+            println("starting service")
+            startService(notiIntent)
+        }
     }
 
     private fun launch() {

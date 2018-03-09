@@ -10,6 +10,7 @@ import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import ch.abertschi.notiplay.PlaybackService
 import ch.abertschi.notiplay.R
+import ch.abertschi.notiplay.getVideoIdFromUrl
 
 /**
  * Created by abertschi on 08.03.18.
@@ -143,6 +144,8 @@ class BrowserState {
 
 
     fun showNotification(context: Context) {
+        if (this.videoUrl == null) return
+
         //build notification
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel(context)
@@ -157,7 +160,7 @@ class BrowserState {
 
 
         val intent = Intent(context, PlayIntentService::class.java)
-        intent.putExtra(PlaybackService.EXTRA_VIDEO_ID, videoUrl)
+        intent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(videoUrl!!))
         intent.action = PlaybackService.ACTION_INIT_WITH_ID
         intent.putExtra(PlaybackService.EXTRA_SEEK_POS, this.seekPos.toLong())
         intent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")

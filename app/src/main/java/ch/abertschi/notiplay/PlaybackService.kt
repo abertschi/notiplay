@@ -53,26 +53,27 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
         println("START FROM SERVICE: ${intent!!.action}")
 
         intent?.run {
-
-            val videoId: String? = intent.getStringExtra(EXTRA_VIDEO_ID)
-            val showPlayerUi: Boolean = intent.getBooleanExtra(EXTRA_SHOW_UI, true)
-            val seekPos = intent.getLongExtra(EXTRA_SEEK_POS, 0)
-            var playbackState = PlaybackManager.PlaybackStartState.PLAY
-            intent.getStringExtra(EXTRA_PLAYBACK_STATE)?.run {
-                if (this == "pause") playbackState = PlaybackManager.PlaybackStartState.PAUSE
-            }
-
-
             if (this.action == ACTION_INIT_WITH_ID) {
-                if (videoId == null) error("Missing argument videoId. Cannot launch player without it")
-                return@run
+
+                val videoId: String? = intent.getStringExtra(EXTRA_VIDEO_ID)
+                val showPlayerUi: Boolean = intent.getBooleanExtra(EXTRA_SHOW_UI, true)
+                val seekPos = intent.getLongExtra(EXTRA_SEEK_POS, 0)
+                var playbackState = PlaybackManager.PlaybackStartState.PLAY
+
+                intent.getStringExtra(EXTRA_PLAYBACK_STATE)?.run {
+                    if (this == "pause") playbackState = PlaybackManager.PlaybackStartState.PAUSE
+                }
+
+                if (connCheck == null)
+                    checkConnectivity() // TODO
+
+                if (videoId == null) {
+                    error("Missing argument videoId. Cannot launch player without it")
+                } else {
+                    playVideoId(PlaybackManager.StartPlaybackWithVideoIdRequest(videoId!!,
+                            startState = playbackState, seekPos = seekPos, showPlayerUi = showPlayerUi))
+                }
             }
-
-            if (connCheck == null)
-                checkConnectivity() // TODO
-
-            playVideoId(PlaybackManager.StartPlaybackWithVideoIdRequest(videoId!!,
-                    startState = playbackState, seekPos = seekPos, showPlayerUi = showPlayerUi))
         }
 
         return START_NOT_STICKY

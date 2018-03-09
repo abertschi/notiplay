@@ -22,6 +22,10 @@ import org.jetbrains.anko.warn
 class PlaybackManager(val playbackService: PlaybackService, val metadataListener: MetadataListener,
                       val playbackListener: PlaybackListener) : AnkoLogger, Player.Callback {
 
+    enum class PlaybackStartState {
+        PLAY, PAUSE
+    }
+
     val player: YoutubePlayer = YoutubePlayer(playbackService, this)
 
     var floatingWindowController: FloatingWindowController? = null
@@ -103,10 +107,15 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         }
     }
 
-    fun startPlaybackWithVideoId(id: String) {
-        info { "playing with id: $id" }
-        videoIdOfCurrentVideo = id
-        metadataManager.setVideoId(id)
+    data class StartPlaybackWithVideoIdRequest(val id: String,
+                                               val startState: PlaybackStartState = PlaybackStartState.PLAY,
+                                               val seekPos: Long = 0, val showPlayerUi: Boolean = true)
+
+
+    fun startPlaybackWithVideoId(request: StartPlaybackWithVideoIdRequest) {
+        info { "playing with id: $request.id" }
+        videoIdOfCurrentVideo = request.id
+        metadataManager.setVideoId(request.id)
         metadataManager.fetchMetadata()
 
         info { "boot state: $booted" }
@@ -115,19 +124,28 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
             info { "starting webview" }
             player.startWebView()
             floatingWindowController = FloatingWindowController(playbackService, playbackService)
+            floatingWindowController?.setVisible(request.showPlayerUi)
             floatingWindowController?.startFloatingWindow(player.getView())
-
-//            player.startWebView()
         }
+
+        val cmd = {
+            floatingWindowController?.setVisible(request.showPlayerUi) // todo: generalize this
+            player.playVideoById(request.id)
+            player.seekToPosition(request.seekPos.toInt())
+            if (request.startState == PlaybackStartState.PLAY) {
+                player.playerPlay()
+            }
+        }
+
         if (!playerReady) {
             info { "player not yet ready" }
             tasksOnPlayerReady?.add {
                 info { "tasks on player ready: play videoById" }
-                player.playVideoById(id)
+                cmd.invoke()
             }
         } else {
             info { "playVideoById because player was already ready" }
-            player.playVideoById(id)
+            cmd.invoke()
         }
     }
 
@@ -168,7 +186,6 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         playerReady = true
         tasksOnPlayerReady?.forEach {
             it()
-            player.playerPlay()
         }
         tasksOnPlayerReady = ArrayList()
     }

@@ -23,6 +23,9 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     companion object {
         val ACTION_INIT_WITH_ID = "action_init_with_id"
         val EXTRA_VIDEO_ID = "extra_video_id"
+        val EXTRA_SHOW_UI = "extra_show_ui"
+        val EXTRA_PLAYBACK_STATE = "extra_playback_state"
+        val EXTRA_SEEK_POS = "extra_seek_pos"
     }
 
     lateinit var mediaSession: MediaSessionCompat
@@ -44,17 +47,34 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
         playbackNotifications.startNotifications()
     }
 
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-
         println("START FROM SERVICE: ${intent!!.action}")
-        if (intent != null && intent.action == ACTION_INIT_WITH_ID) {
-            intent.getStringExtra(EXTRA_VIDEO_ID)?.run {
-                playVideoId(this)
-                if (connCheck == null)
-                    checkConnectivity() // TODO
+
+        intent?.run {
+
+            val videoId: String? = intent.getStringExtra(EXTRA_VIDEO_ID)
+            val showPlayerUi: Boolean = intent.getBooleanExtra(EXTRA_SHOW_UI, true)
+            val seekPos = intent.getLongExtra(EXTRA_SEEK_POS, 0)
+            var playbackState = PlaybackManager.PlaybackStartState.PLAY
+            intent.getStringExtra(EXTRA_PLAYBACK_STATE)?.run {
+                if (this == "pause") playbackState = PlaybackManager.PlaybackStartState.PAUSE
             }
+
+
+            if (this.action == ACTION_INIT_WITH_ID) {
+                if (videoId == null) error("Missing argument videoId. Cannot launch player without it")
+                return@run
+            }
+
+            if (connCheck == null)
+                checkConnectivity() // TODO
+
+            playVideoId(PlaybackManager.StartPlaybackWithVideoIdRequest(videoId!!,
+                    startState = playbackState, seekPos = seekPos, showPlayerUi = showPlayerUi))
         }
+
         return START_NOT_STICKY
     }
 
@@ -62,9 +82,9 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
         return null
     }
 
-    fun playVideoId(id: String) {
-        currentVideoId = id
-        playbackManager.startPlaybackWithVideoId(id)
+    fun playVideoId(command: PlaybackManager.StartPlaybackWithVideoIdRequest) {
+        currentVideoId = command.id
+        playbackManager.startPlaybackWithVideoId(command)
     }
 
     fun getSessionToken() = mediaSession.sessionToken
@@ -84,7 +104,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     }
 
     override fun onVideoIdChanged(id: String) {
-        playVideoId(id)
+        playVideoId(PlaybackManager.StartPlaybackWithVideoIdRequest(id))
     }
 
     fun shutdownService() {

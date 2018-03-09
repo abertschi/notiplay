@@ -134,7 +134,7 @@
 //
 //    var token: MediaSession.Token? = null
 //
-//    fun showHeadsUp() {
+//    fun showNotification() {
 //        //build notification
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 //            createNotificationChannel()

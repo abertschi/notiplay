@@ -2,10 +2,13 @@ package ch.abertschi.notiplay.intercept
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
+import ch.abertschi.notiplay.PlaybackService
 import ch.abertschi.notiplay.R
 
 /**
@@ -21,6 +24,8 @@ class BrowserState {
     private var startStopHash = ""
     private var currentState = State.RESET
     private var originPlayerInForeground = false
+
+    private var videoTitle: String? = null
 
     private constructor() {
     }
@@ -41,17 +46,19 @@ class BrowserState {
     private var scrolPerformed = false
 
     fun onScrollPerformed() {
-        scrolPerformed =true
+        scrolPerformed = true
 
     }
 
     fun onOriginPlayerInForeground(state: Boolean, context: Context) {
-        println("player in foregrond: " + state)
-        if (!state && originPlayerInForeground && currentState != State.PLAYING) {
-            // player is put to background
-            showHeadsUp(context)
-            println("Player can launch here: $videoUrl at $seekPos")
-        }
+
+        showNotification(context)
+//        println("player in foregrond: " + state)
+//        if (!state && originPlayerInForeground) {
+//            // player is put to background
+//            showNotification(context)
+//            println("Player can launch here: $videoUrl at $seekPos")
+//        }
         originPlayerInForeground = state
 
     }
@@ -64,8 +71,18 @@ class BrowserState {
 
     fun updateSeekPosition(seconds: Int, context: Context) {
         seekPos = seconds
+        showNotification(context)
         resetState()
 
+    }
+
+    fun updateVideoUrl(url: String?) {
+        if (url == null) return
+        this.videoUrl = url
+    }
+
+    fun updateVideoTitle(title: String?) {
+        this.videoTitle = title
     }
 
     fun onPlaybackStart(hash: String, context: Context) {
@@ -80,12 +97,13 @@ class BrowserState {
         val now = System.currentTimeMillis()
         lastStarted = now
 
-//        println(" DURATION: " + getDuration())
+        showNotification(context)
+        println(" DURATION: " + getDuration())
 
     }
 
     private fun resetState() {
-//        println("resetting state")
+        println("resetting state")
         duration = 0
         currentState = State.RESET
         scrolPerformed = false
@@ -93,7 +111,8 @@ class BrowserState {
     }
 
     fun onPlaybackPause(hash: String, context: Context) {
-//        println("pausing playback counter")
+        showNotification(context)
+        println("pausing playback counter")
 
         if (currentState == State.PAUSED && startStopHash == hash) return
 //        println("currenetState: $currentState, startStopHash: $startStopHash, hash: $hash")
@@ -106,7 +125,7 @@ class BrowserState {
         val now = System.currentTimeMillis()
         duration += ((now - lastStarted) / 1000)
 
-//        println(" DURATION: " + getDuration())
+        println(" DURATION: " + getDuration())
     }
 
     fun onPlaybackStop(hash: String, context: Context) {
@@ -123,28 +142,60 @@ class BrowserState {
     }
 
 
-    fun showHeadsUp(context: Context) {
+    fun showNotification(context: Context) {
         //build notification
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel(context)
         }
+
+        val notificationId = 188
+
+//        val playbackIntent = Intent(context, PlaybackService::class.java)
+//
+//        val playPendingIntent = PendingIntent.getService(context, notificationId,
+//                playbackIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+
+
+        val intent = Intent(context, PlayIntentService::class.java)
+        intent.putExtra(PlaybackService.EXTRA_VIDEO_ID, videoUrl)
+        intent.action = PlaybackService.ACTION_INIT_WITH_ID
+        intent.putExtra(PlaybackService.EXTRA_SEEK_POS, this.seekPos.toLong())
+        intent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")
+
+        val pendingIntent = PendingIntent.getService(context, notificationId, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+
+
+//        val view = RemoteViews("ch.abertschi.notiplay", R.layout.notification)
+//        view.setOnClickPendingIntent(R.id.notification_closebtn_ib, playPendingIntent)
+//        builder.setContent(view)
+
+
+        var msg1 = "Continue playback at " + this.seekPos + " seconds"
+
+        var title = ""
+        var subtitle = ""
+        if (this.videoTitle != null) {
+            title = this.videoTitle!!
+            subtitle = msg1
+        } else {
+            title = msg1
+            subtitle = ""
+        }
         val b = NotificationCompat.Builder(context, CHANNEL_ID)
 //            b.setDefaults(Notification.DEFAULT_VIBRATE or  Notification.DEFAULT_SOUND)
                 .setSmallIcon(R.drawable.abc_cab_background_internal_bg)
-                .setContentTitle("Continue playback in background?")
-//                .setContentText("Tomorrow will be your birthday.")
+                .setContentTitle(title)
+                .setContentText(subtitle)
+                .setContentIntent(pendingIntent)
                 // TODO :set sound to void
-
-                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setOnlyAlertOnce(true)
+                .setOngoing(false)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .addAction(R.drawable.common_google_signin_btn_icon_dark,
-                        "Yes", null)
-                .addAction(R.drawable.common_google_signin_btn_icon_dark,
-                        "Always Yes", null)
-                .addAction(R.drawable.common_google_signin_btn_icon_dark,
-                        "Never", null)
+                        "PLAY", pendingIntent)
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(0, b.build())
+        notificationManager.notify(notificationId, b.build())
 
     }
 

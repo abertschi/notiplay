@@ -37,8 +37,10 @@ class YtNotificationListener2 : NotificationListenerService() {
                 }
                 if (playPauseAction.title == "Pause") {
                     BrowserState.GET.onPlaybackStart(key, this)
+                    BrowserState.GET.updateVideoTitle(playbackTile)
                     YtAccessibilityService?.INSTANCE?.performSwypeUpIfInValidApp()
                 } else if (playPauseAction.title == "Play") {
+                    BrowserState.GET.updateVideoTitle(playbackTile)
                     BrowserState.GET.onPlaybackPause(key, this)
                 }
             } catch (e: Exception) {

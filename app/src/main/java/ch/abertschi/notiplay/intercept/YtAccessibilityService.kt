@@ -10,8 +10,9 @@ import android.view.accessibility.AccessibilityEvent
 import org.jetbrains.anko.AnkoLogger
 import android.content.Intent
 import android.view.accessibility.AccessibilityNodeInfo
-import ch.abertschi.notiplay.MainActivity
+import ch.abertschi.notiplay.NotiplayActivity
 import ch.abertschi.notiplay.PlaybackService
+import ch.abertschi.notiplay.getVideoIdFromUrl
 
 
 /**
@@ -62,7 +63,7 @@ class YtAccessibilityService : AccessibilityService(), AnkoLogger {
         val notiIntent = Intent(this, PlaybackService::class.java)
         notiIntent.action = PlaybackService.ACTION_INIT_WITH_ID
         notiIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-        notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, MainActivity.getVideoIdFromUrl(url))
+        notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(url))
         startService(notiIntent)
     }
 

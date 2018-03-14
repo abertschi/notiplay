@@ -62,6 +62,7 @@
 
         <service
             android:name="ch.abertschi.notiplay.intercept.PlayIntentService"
+            android:process=":background"
             android:exported="false"/>
 
         <service

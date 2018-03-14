@@ -32,7 +32,6 @@
     </iframe>
 
     <script type="text/javascript">
-     "strict mode";
 
      var tag = document.createElement('script');
      tag.id = 'iframe-demo';
@@ -69,8 +68,8 @@
        autoplay: 1,
        control: 1, 
        rel: 0,
-       fs: 0
-     };
+       fs: 0,
+     }
      
      function onYouTubeIframeAPIReady() {
        player = new YT.Player('notiplay-iframe', {
@@ -210,12 +209,78 @@
      }
 
      function playerNextVideo(callbackOnDone) {
+       if (notiStorage.isPlaybackInHistory
+           && notiStorage.playIndex < notiStorage.playHistory.length - 1) {
+         
+         notiStorage.playIndex += 1;
+         var id = notiStorage.playHistory[notiStorage.playIndex];
+         playWithVideoId(id);
+       } else {
+         
+         notiStorage.isPlaybackInHistory = false;
+         try{
+           _getRelatedVideo(function(data) {
+
+             if (data.length < 1) return;
+             var video = false;
+             data.forEach(function(d) {
+               if (!video && notiStorage.playHistory.indexOf(d.id) == -1) {
+                 video = d;
+               }
+             });
+             
+             if (!video) video = data[0];
+             playWithVideoId(video.id);
+           });
+         } catch(e) {};
+       }
+
+       if (callbackOnDone) {
+         callbackOnDone();
+       }
      }
 
      function playerPreviousVideo() {
+       if (player.getCurrentTime() > 5) {
+         seekTo(0);
+       } else { 
+         notiStorage.isPlaybackInHistory = true;
+         if (notiStorage.playIndex == 0) {
+           console.log("cant go further back, beginning reached");
+           return;
+         }
+         notiStorage.playIndex = notiStorage.playIndex - 1;
+         var id = notiStorage.playHistory[notiStorage.playIndex];
+         playWithVideoId(id);
+       }
      }
 
      function getVideoData() {
+       _fetchVideoData(function(data) {
+         if (data.items
+             && data.items.length > 0
+             && data.items[0].snippet) {
+           var snippet = data.items[0].snippet;
+
+           var thumnail = '';
+           if (snippet.thumbnails.maxres) {
+             thumbnail = snippet.thumbnails.maxres.url;
+           } else if(snippet.thumbnails.high) {
+             thumbnail = snippet.thumbnails.high.url;
+           } else {
+             console.log(snippet);
+             console.log('todo other res for thumbnail needed!');
+           }
+           var title = snippet.title;
+           var duration = player.getDuration();
+           var isLoop = notiStorage.isLoopVideo;
+           var videoId = notiStorage.videoId;
+
+           if (NotiPlay) {
+             NotiPlay.onVideoData(title, thumbnail, duration, isLoop, videoId);
+           }
+         }
+       });
      }
      
      function getPlaybackPosition() {
@@ -244,10 +309,42 @@
      }
      
      function _fetchVideoData(callback) {
+       $.get("https://www.googleapis.com/youtube/v3/videos?part=snippet&id=" +
+             notiStorage.videoId + "&key=" + ytk,
+             function(data) {
+               if (callback) {
+                 callback(data);
+               } else {
+                 console.log(data);
+               }
+             });
      }
 
      function _getRelatedVideo(callback) {
+       var id = notiStorage.videoId;
+       var url = "https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=" +
+                 id + "&type=video&key=" + ytk;
+       
+       $.get(url, function(data) {
+         var relatedVideos = [];
+         if (data && data.items) {
+           data.items.forEach(function(item) {
+             var vId = item.id.videoId;
+             var snippet = item.snippet;
 
+             relatedVideos.push({
+               id: vId,
+               snippet: snippet
+             });
+           });
+         }
+         if (callback) {
+           callback(relatedVideos);
+         } else {
+           console.log(data);
+           console.log(relatedVideos);
+         }
+       });
      }
     </script>
   </body>

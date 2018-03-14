@@ -6,6 +6,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.MediaMetadataCompat.METADATA_KEY_ALBUM_ART
 import android.util.Log.wtf
 import ch.abertschi.notiplay.PlaybackManager
+import ch.abertschi.notiplay.Player
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -16,13 +17,13 @@ import java.net.URL
 /**
  * Created by abertschi on 21.02.18.
  */
-class YoutubeMetadata(val metadataListener: PlaybackManager.MetadataListener) : AnkoLogger {
+class YoutubeMetadata(val metadataListener: PlaybackManager.MetadataListener) : AnkoLogger, Player.MetadataProvider {
 
     val metadata = YoutubeApiWrapper()
 
     private var currentVideoId: String = ""
 
-    fun setVideoId(videoId: String) {
+    override fun setVideoId(videoId: String) {
         currentVideoId = videoId
     }
 
@@ -53,7 +54,7 @@ class YoutubeMetadata(val metadataListener: PlaybackManager.MetadataListener) : 
         metadataListener.onMetadataChanged(m.build())
     }
 
-    fun fetchMetadata() {
+    override fun fetchMetadata() {
         metadata.getVideoMetadata(currentVideoId)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -69,4 +70,5 @@ class YoutubeMetadata(val metadataListener: PlaybackManager.MetadataListener) : 
                     }
                 }, { err -> wtf(err.message, err) })
     }
+
 }

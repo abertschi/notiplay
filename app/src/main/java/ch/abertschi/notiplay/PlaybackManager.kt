@@ -7,7 +7,6 @@ import android.os.SystemClock
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import ch.abertschi.notiplay.playback.yt.YoutubeMetadata
 import ch.abertschi.notiplay.playback.yt.YoutubePlayer
 import ch.abertschi.notiplay.view.FloatingWindowController
 import org.jetbrains.anko.AnkoLogger
@@ -26,14 +25,18 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         PLAY, PAUSE
     }
 
-    val player: YoutubePlayer = YoutubePlayer(playbackService, this)
+    val player: YoutubePlayer = YoutubePlayer(playbackService, this, metadataListener)
+
+    var metadataManager: Player.MetadataProvider? = null
+
+    init {
+        metadataManager = player.getMetadataProvider()
+    }
 
     var floatingWindowController: FloatingWindowController? = null
 
-
     var videoIdOfCurrentVideo: String? = "" // remove?
 
-    val metadataManager = YoutubeMetadata(metadataListener)
 
     private var tasksOnPlayerReady: ArrayList<(() -> Unit)>? = ArrayList<(() -> Unit)>()
 
@@ -119,8 +122,8 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
     fun startPlaybackWithVideoId(request: StartPlaybackWithVideoIdRequest) {
         info { "playing with id: $request.id" }
         videoIdOfCurrentVideo = request.id
-        metadataManager.setVideoId(request.id)
-        metadataManager.fetchMetadata()
+        metadataManager?.setVideoId(request.id)
+        metadataManager?.fetchMetadata()
 
         info { "boot state: $booted" }
         if (!booted) {

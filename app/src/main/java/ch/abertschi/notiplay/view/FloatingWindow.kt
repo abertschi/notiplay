@@ -120,6 +120,7 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         layoutParams?.verticalMargin = 0f
 
         this.allowScroll = stateComposition.canScroll
+        visibility = if (isVisible) View.VISIBLE else View.INVISIBLE
     }
 
     fun loadLayout(childView: View) {

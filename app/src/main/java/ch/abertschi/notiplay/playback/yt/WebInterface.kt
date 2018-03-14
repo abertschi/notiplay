@@ -11,7 +11,9 @@ import org.jetbrains.anko.info
 class WebInterface(val acontext: Context, var observers: List<WebObserver>): AnkoLogger {
 
     @JavascriptInterface
-    fun hello(): Unit = throw UnsupportedOperationException("yay")
+    fun videoSrc(src: String) {
+        observers.forEach { it.onVideoSrc(src) }
+    }
 
     @JavascriptInterface
     fun onPlayerReady() {

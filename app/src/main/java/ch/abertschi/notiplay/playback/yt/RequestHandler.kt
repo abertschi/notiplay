@@ -16,11 +16,22 @@ import org.mortbay.log.Log.warn
  */
 class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
 
-    var debug: Boolean = true
-
     var onStop: (() -> Unit)? = null
 
     val handler = Handler(getMainLooper())
+
+    private var fetchDownload = true
+
+    var fixOrigin: Boolean = true
+
+    private var downloadHandle: DownloadHandle? = null
+
+
+    fun setDownloadInterceptor(h: DownloadHandle) {
+        downloadHandle = h
+    }
+    fun enableDownloadInterceptor(state: Boolean) = fetchDownload
+
 
     private val httpClient = OkHttpClient()
     private val jqueryUrl = "http://code.jquery.com/jquery-3.3.1.min.js"
@@ -80,7 +91,13 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
             return WebResourceResponse("bgsType", "someEncoding", null)
         }
 
-        //debug { "#intercepting: " + url }
+        info { "#intercepting: " + url }
+
+        if (url.contains("googlevideo.com/videoplayback?")) {
+            if (fetchDownload && downloadHandle != null) {
+                downloadHandle?.onVideoUrlFetch(url)
+            }
+        }
 
         val address = url.trim { it <= ' ' }
         var origin = if (url.startsWith(googleYtV3VideoApi)) {
@@ -89,32 +106,40 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
             "https://www.youtube.com"
         }
         try {
-            val request = Request.Builder()
+            val b = Request.Builder()
                     .url(address)
-                    .addHeader("Origin", origin)
-                    .addHeader("origin", origin)
-                    .addHeader("Referer", origin)
-                    .addHeader("Access-Control-Allow-Credentials",
-                            "false")
-                    .addHeader("user-agent",
-                            "Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X) " +
-                                    "AppleWebKit/536.26 (KHTML, like Gecko) " +
-                                    "Version/6.0 Mobile/10A5376e Safari/8536.25")
-                    .build()
+
+
+            if (fixOrigin) {
+                b.addHeader("Origin", origin)
+                        .addHeader("origin", origin)
+                        .addHeader("Referer", origin)
+                        .addHeader("Access-Control-Allow-Credentials",
+                                "false")
+            }
+
+            if (fetchDownload) {
+                b.addHeader("user-agent",
+                        "Mozilla/5.0 (iPad; CPU OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) CriOS/30.0.1599.12 Mobile/11A465 Safari/8536.25 (3B92C18B-D9DE-4CB7-A02A-22FD2AF17C8F)")
+//                                "AppleWebKit/536.26 (KHTML, like Gecko) " +
+//                                "Version/6.0 Mobile/10A5376e Safari/8536.25")
+            }
+            val request = b.build()
 
             val response = httpClient.newCall(request).execute()
             val headers = HashMap<String, String>()
 
-            headers.run {
-                put("Connection", "close")
-                put("Access-Control-Allow-Methods", "POST,GET,OPTIONS,PUT,DELETE")
-                put("Access-Control-Max-Age", "1200")
-                put("Access-Control-Allow-Origin", origin)
-                put("Access-Control-Allow-Credentials", "true")
-                put("Access-Control-Expose-Headers", httpHeaders)
-                put("Access-Control-Allow-Headers", httpHeaders)
+            if (fixOrigin) {
+                headers.run {
+                    put("Connection", "close")
+                    put("Access-Control-Allow-Methods", "POST,GET,OPTIONS,PUT,DELETE")
+                    put("Access-Control-Max-Age", "1200")
+                    put("Access-Control-Allow-Origin", origin)
+                    put("Access-Control-Allow-Credentials", "true")
+                    put("Access-Control-Expose-Headers", httpHeaders)
+                    put("Access-Control-Allow-Headers", httpHeaders)
+                }
             }
-
             return WebResourceResponse(null,
                     response.header("content-encoding", "utf-8")
                     , 200,
@@ -133,5 +158,16 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
                                  error: WebResourceError) {
         super.onReceivedError(view, request, error)
         warn("loading web view: request: $request error: $error")
+    }
+
+    override fun onPageFinished(view: WebView?, url: String?) {
+        println("ON PAGE FINISHEDDD")
+        super.onPageFinished(view, url)
+        downloadHandle?.onPageinished(view, url)
+    }
+
+    interface DownloadHandle {
+        fun onVideoUrlFetch(url: String)
+        fun onPageinished(view: WebView?, url: String?)
     }
 }

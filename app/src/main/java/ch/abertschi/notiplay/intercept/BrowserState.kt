@@ -25,7 +25,7 @@ class BrowserState : AnkoLogger {
     private var lastStarted: Long = 0
 
     private var startStopHash = ""
-    private var currentState = State.RESET
+    private var currentState = State.INIT
     private var originPlayerInForeground = false
 
     private var videoTitle: String? = null
@@ -42,10 +42,10 @@ class BrowserState : AnkoLogger {
     private var videoUrl: String? = null
 //    private var seekPos = 0
 
-    private enum class State {
+    enum class State {
         PLAYING,
         PAUSED,
-        RESET
+        INIT
     }
 
     private var scrolPerformed = false
@@ -75,56 +75,68 @@ class BrowserState : AnkoLogger {
 
         if (videoUrl != url) {
             videoUrl = url
+            if (currentState == State.INIT) {
+                showNotification(context)
+            }
+
         }
     }
 
     fun updateSeekPosition(seconds: Int, context: Context) {
-        resetState(context)
+        //resetState(context)
 //        seekPos = seconds
         _duration = seconds.toLong()
-        showNotification(context)
+        info { "--- updating counter, duration: " + _duration }
+        info(" DURATION: " + getDuration())
+        if (currentState == State.PLAYING) {
+            lastStarted = System.currentTimeMillis()
+        }
     }
 
     fun updateVideoTitle(title: String?, context: Context) {
         if (title == null) return
 
         if (title != videoTitle) {
-            resetState(context)
+            _duration = 0
+            showNotification(context)
+            // resetState(context)
         }
         this.videoTitle = title
     }
 
+    fun getPlaybackState() = this.currentState
+
     fun onPlaybackStart(hash: String, context: Context) {
         info("starting playback counter")
+        info { "--- onplayback start: hash: " + hash }
         if (currentState == State.PLAYING && startStopHash == hash) return
         currentState = State.PLAYING
 
-        BrowserAccessibilityService.INSTANCE?.performSwypeUpIfInValidApp()
-
         if (startStopHash != hash) {
             startStopHash = hash
-            resetState(context)
+            _duration = 0
+            BrowserAccessibilityService.INSTANCE?.performSwypeUpIfInValidApp()
+            // resetState(context)
         }
+
         val now = System.currentTimeMillis()
         lastStarted = now
+        info { "--- starting counter, duration: " + _duration }
 
         showNotification(context)
         info(" DURATION: " + getDuration())
 
     }
 
-    private fun resetState(context: Context) {
-        info("resetting state")
-        _duration = 0
-        currentState = State.RESET
-        scrolPerformed = false
-        removeNotification(context)
-
-        if (currentState == State.PLAYING) {
-            lastStarted = System.currentTimeMillis()
-        }
-
-    }
+//    private fun resetState(context: Context) {
+//        info { "--- resetting counter" }
+//        info("resetting state")
+//        _duration = 0
+//        currentState = State.RESET
+//        scrolPerformed = false
+//        removeNotification(context)
+//        lastStarted = System.currentTimeMillis()
+//    }
 
     fun onPlaybackPause(hash: String, context: Context) {
         showNotification(context)
@@ -135,17 +147,20 @@ class BrowserState : AnkoLogger {
 
         currentState = State.PAUSED
         if (startStopHash != hash) {
-            startStopHash = hash
-            resetState(context)
+            //startStopHash = hash
+            // resetState(context)
+            //_duration = 0
         }
         val now = System.currentTimeMillis()
         _duration += ((now - lastStarted) / 1000)
+
+        info { "--- stopping counter, ${now - lastStarted}: duration: ${_duration}" }
 
         info(" DURATION: " + getDuration())
     }
 
     fun onPlaybackStop(hash: String, context: Context) {
-        currentState = State.RESET
+        // currentState = State.RESET
     }
 
     fun getDuration(): Long {
@@ -158,31 +173,42 @@ class BrowserState : AnkoLogger {
     }
 
     fun removeNotification(context: Context) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(notificationId)
+
     }
 
     fun getCurrentStateHash(context: Context): String {
         return this.startStopHash
     }
 
+    fun cleanNotifications(context: Context) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(notificationId)
+
+    }
+
 
     fun showNotification(context: Context) {
         if (this.videoUrl == null) return
+        // if (this.videoTitle == null) return
+        val videoId = getVideoIdFromUrl(videoUrl!!) ?: return
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createNotificationChannel(context)
         }
 
         val playIntent = Intent(context, PlayIntentService::class.java)
-        playIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(videoUrl!!))
+        playIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, videoId)
         playIntent.action = PlaybackService.ACTION_INIT_WITH_ID
         playIntent.putExtra(PlaybackService.EXTRA_SEEK_POS, getDuration())
         playIntent.putExtra(PlayIntentService.EXTRA_HASH, this.startStopHash)
+        playIntent.putExtra(PlaybackService.EXTRA_SHOW_UI, true)
         playIntent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")
+        playIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
 
         val audioOnlyIntent = Intent(context, PlayIntentService::class.java)
-        audioOnlyIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, getVideoIdFromUrl(videoUrl!!))
+        audioOnlyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        audioOnlyIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, videoId)
         audioOnlyIntent.action = PlaybackService.ACTION_INIT_WITH_ID
         audioOnlyIntent.putExtra(PlaybackService.EXTRA_SEEK_POS, getDuration())
         audioOnlyIntent.putExtra(PlayIntentService.EXTRA_HASH, this.startStopHash)
@@ -190,26 +216,24 @@ class BrowserState : AnkoLogger {
         audioOnlyIntent.putExtra(PlaybackService.EXTRA_PLAYBACK_STATE, "play")
 
         val playPendingIntent =
-                PendingIntent.getService(context, notificationId, playIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+                PendingIntent.getService(context, 5, playIntent, PendingIntent.FLAG_CANCEL_CURRENT)
 
         val audioOnlyPendingIntent =
-                PendingIntent.getService(context, notificationId, audioOnlyIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+                PendingIntent.getService(context, 10, audioOnlyIntent, PendingIntent.FLAG_CANCEL_CURRENT)
 
-
-
-        var msg1 = "Continue playback at " + getDuration() + " seconds"
 
         var title = ""
         var subtitle = ""
         if (this.videoTitle != null) {
             title = this.videoTitle!!
-            subtitle = msg1
+            subtitle = "Recently played"
         } else {
-            title = msg1
-            subtitle = ""
+            title = "Load video with Notiplay"
+            subtitle = "Playback video in background"
         }
+
         val b = NotificationCompat.Builder(context, CHANNEL_ID)
-//            b.setDefaults(Notification.DEFAULT_VIBRATE or  Notification.DEFAULT_SOUND)
+//            b.setDefaults(Notification. or  Notification.DEFAULT_SOUND)
                 .setSmallIcon(R.drawable.abc_cab_background_internal_bg)
                 .setContentTitle(title)
                 .setContentText(subtitle)
@@ -218,10 +242,14 @@ class BrowserState : AnkoLogger {
                 .setOnlyAlertOnce(true)
                 .setOngoing(false)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .addAction(R.drawable.common_google_signin_btn_icon_dark,
+                .addAction(R.drawable.notification_icon_background,
                         "PLAY", playPendingIntent)
                 .addAction(R.drawable.common_google_signin_btn_icon_dark,
                         "AUDIO ONLY", audioOnlyPendingIntent)
+
+                .addAction(R.drawable.common_google_signin_btn_icon_dark,
+                        "DOWNLOAD", audioOnlyPendingIntent)
+
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(notificationId, b.build())
@@ -236,8 +264,11 @@ class BrowserState : AnkoLogger {
             val notificationChannel = NotificationChannel(CHANNEL_ID,
                     "Notiplay utils",
                     NotificationManager.IMPORTANCE_MIN)
+            notificationChannel.setShowBadge(false)
+            notificationChannel.enableLights(false)
             notificationChannel.description = "transition from Youtube to Notiplay"
             notificationManager.createNotificationChannel(notificationChannel)
+
         }
     }
 

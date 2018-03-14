@@ -1,6 +1,7 @@
 package ch.abertschi.notiplay.intercept
 
 import android.app.Notification
+import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
@@ -13,10 +14,18 @@ class BrowserNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.groupKey.toString().contains("com.android.chrome")) {
 
-            val extras = sbn.notification.extras
-            var playbackTile = extras.get("android.title") as String
+            val extras: Bundle? = sbn.notification.extras
+            var playbackTile = extras?.get("android.title") as String?
             var key = playbackTile
+            if (extras == null) return
+            //sbn.
+            for(e in extras!!.keySet()) {
+                println(e.toString())
+                println(extras.get(e))
+            }
+            if (key == null) return
             try {
+                println(key)
                 val actions = sbn.notification.actions
                 var playPauseAction: Notification.Action?
                 if (actions.size == 3) {

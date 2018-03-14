@@ -12,6 +12,12 @@ interface Player {
 
     }
 
+    interface MetadataProvider {
+
+        fun fetchMetadata()
+        fun setVideoId(id: String)
+    }
+
     fun getState(): Int
     fun playVideoById(videoId: String, seekPosition: Int = 0)
 
@@ -23,6 +29,8 @@ interface Player {
 
     fun getView(): View
     fun getViewController(): ViewController
+
+    fun getMetadataProvider(): MetadataProvider
 
     fun playerNextVideo()
     fun playerPreviousVideo()

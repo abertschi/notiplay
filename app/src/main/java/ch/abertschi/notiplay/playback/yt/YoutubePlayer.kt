@@ -2,25 +2,79 @@ package ch.abertschi.notiplay.playback.yt
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.View
 import android.view.WindowManager
 import android.webkit.WebSettings
+import android.webkit.WebView
+import ch.abertschi.notiplay.PlaybackManager
 import ch.abertschi.notiplay.Player
-import ch.abertschi.notiplay.view.FloatingWindow
+import com.github.kittinunf.fuel.httpGet
 import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.info
+import org.jetbrains.anko.wtf
 import java.nio.charset.Charset
 import java.util.*
+
+
 
 
 /**
  * Created by abertschi on 26.01.18.
  */
 
-class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback) : Player,
-        WebObserver, AnkoLogger {
+class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback,
+                    val metadataListener: PlaybackManager.MetadataListener) : Player,
+        WebObserver, AnkoLogger, RequestHandler.DownloadHandle {
+    override fun onVideoSrc(src: String) {
+        println("!!!!! " + src)
+    }
+
+    override fun onPageinished(view: WebView?, url: String?) {
+        info { "ON PAGE FINISHED" }
+//        view?.evaluateJavascript(
+////                "(function(){document.getElementsByTagName('video')[0].click();})();",
+//                 "(function(){if (document.getElementsByTagName('video')[0]) {document.getElementsByTagName('video')[0].click();} })();",
+//                {value ->
+//                    info { "RETURN VALUE: " + value}
+//
+//                })
+    }
+
+
+    var a = false
+
+    override fun onVideoUrlFetch(url: String) {
+        info { "==== " + url }
+        try {
+            url.httpGet().response {request, resp, result ->
+                info { "==== HEADERS: " + resp.headers.get("Content-Type") }
+                val mimeTypeHeaders = resp.headers.get("Content-Type")
+                if (mimeTypeHeaders != null && mimeTypeHeaders.isNotEmpty()) {
+                    val mt = mimeTypeHeaders[0]
+                    if (mt.startsWith("video") && !a && false) {
+                        // a = true
+                        val i = Intent(Intent.ACTION_VIEW)
+                        i.data = Uri.parse(url)
+                        context.startActivity(i)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            wtf(e)
+        }
+    }
+
+    private val metadataProvider = YoutubeMetadata(metadataListener)
+
+    override fun getMetadataProvider(): Player.MetadataProvider {
+        return this.metadataProvider
+    }
+
     override fun getState(): Int {
         return state
     }
@@ -38,10 +92,6 @@ class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback)
         execJs("window.location.reload( true );")
     }
 
-//    override fun toggleVisible() {
-//        floatingWindow?.toggleVisible()
-//    }
-
     private val handler = Handler(Looper.getMainLooper())
     private var observers: MutableList<WebObserver> = ArrayList()
     private var onCloseCallback: (() -> Unit)? = null
@@ -49,7 +99,6 @@ class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback)
     private val webAsset: String = "notiplay.html"
 
     private var windowManager: WindowManager? = null
-    private var floatingWindow: FloatingWindow? = null
     private var youtubeWebView: YoutubeWebView? = null
     private var webViewClient: RequestHandler? = null
 
@@ -70,13 +119,20 @@ class YoutubePlayer(val context: Context, val playbackCallback: Player.Callback)
         }
 
         webViewClient = RequestHandler(youtubeWebView!!)
+        webViewClient?.fixOrigin = false
+        webViewClient?.setDownloadInterceptor(this)
+        webViewClient?.enableDownloadInterceptor(true)
+
 
         youtubeWebView?.let {
-            it.webViewClient = webViewClient
+             //it.webViewClient = webViewClient
             it.addJavascriptInterface(WebInterface(context, observers), "NotiPlay")
             configureWebView(it.settings)
             it.setInitialScale(1)
-            it.loadData(assetToString(webAsset), "text/html", null)
+
+            it.loadUrl("https://m.youtube.com/watch?v=TgA2y-Bgi3c")
+            // document.getElementsByTagName("video")[0].click();document.getElementsByTagName("video").src
+            // it.loadData(assetToString(webAsset), "text/html", null)
         }
 
     }

@@ -1,30 +1,78 @@
 <html>
-  <!-- test with this video -->
-  <!-- src="https://www.youtube.com/embed/82TD06U4ppA?enablejsapi=1" -->
+  <head>
+    <script
+      src="http://code.jquery.com/jquery-3.3.1.min.js"
+      integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+      crossorigin="anonymous"></script>
+
+    <style>
+     body {
+       background-color: black;
+       margin: 0;
+       padding: 0;
+       width: 100%;
+       height: 100%;
+     }
+
+     iframe {
+       width: 100%;
+       height: 100%;
+     }
+
+     .ytp-tooltip{
+       visibility: hidden !important;
+     }
+    </style>
+  </head>
   <body>
     <iframe id="notiplay-iframe"
-            width="640" height="360"
-            src="https://www.youtube.com/embed/5Svp9E5orvw"
-            enablejsapi="1"
+            src="https://www.youtube.com/embed/5Svp9E5orvw?enablejsapi=1&controls=1&fs=0&rel=0"
+            enablejsapi="1",
             frameborder="0">
     </iframe>
 
     <script type="text/javascript">
+
      var tag = document.createElement('script');
      tag.id = 'iframe-demo';
      tag.src = 'https://www.youtube.com/iframe_api';
 
      var firstScriptTag = document.getElementsByTagName('script')[0];
      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
+     
+     var ytk = "AIzaSyCrT-HRrkCwFSwdg3ETJbCMB-GffhNVJfM";
+     
      var player;
      var playerStats = {
        ready: false,
        readyCallables: []
+     };
+
+
+     var notiStorage = {
+       videoId: '5Svp9E5orvw',
+       playHistory: ['5Svp9E5orvw'],
+       playIndex: 0,
+       isPlaybackInHistory: false,
+       isLoopVideo: false,
+       isLoadingEndOfVideoAction: false
+     };
+     
+     try {
+       if (NotiPlay) {}
+     } catch(e) {
+       window.NotiPlay = false;
      }
+
+     var playerVars = {
+       autoplay: 1,
+       control: 1, 
+       rel: 0,
+       fs: 0,
+     }
+     
      function onYouTubeIframeAPIReady() {
        player = new YT.Player('notiplay-iframe', {
-         videoId: 'M7lc1UVf-VE',
          events: {
            'onReady': onPlayerReady,
            'onStateChange': onPlayerStateChange,
@@ -34,66 +82,172 @@
            
          }
        });
-
-       /* console.log(player);*/
-       setTimeout(function(){
-         // NotiPlay.hello();
-         console.log('trying to say hello');
-
-       }, 3000);
      }
+     
      function onPlayerReady(event) {
-       /* event.target.playVideo();*/
-       console.log('player is ready now');
-       /* playerStats.ready = true;
-        * playerStats.readyCallables.forEach(function(c){
-        *   c();
-        * });
-        * playerStats.readyCallables = []*/
+       playerStats.ready = true;
+       playerStats.readyCallables.forEach(function(c){
+         c();
+       });
+       playerStats.readyCallables = [];
+
+       if (NotiPlay) {
+         NotiPlay.onPlayerReady();
+       }
+       
+       setInterval(function(){
+         var t = player.getCurrentTime();
+         var totalTime = Math.round(player.getDuration());
+         t = Math.round(t);
+         
+         if (NotiPlay) {
+           NotiPlay.onPlaybackPositionUpdate(t);
+         }
+
+         if (t >= totalTime && totalTime != 0) {
+           if(NotiPlay) {
+             NotiPlay.onPlaybackEndReached();
+           }
+         }
+       }, 2000);
      }
 
      function onPlayerStateChange(event) {
+       if (NotiPlay) {
+         NotiPlay.onPlayerStateChange(event.data);
+       }
      }
 
      function onPlaybackQualityChange(event) {
+       if (NotiPlay) {
+         var arg = event.data;
+
+         NotiPlay.onPlaybackQualityChange(arg);
+       }
      }
 
      function onPlaybackRateChange(event) {
+       if (NotiPlay) {
+         NotiPlay.onPlaybackRateChange(event.data);
+       }
      }
 
      function onError(event) {
+       if (NotiPlay) {
+         NotiPlay.onErrorCode(event.data);
+       }
      }
 
      function playWithVideoId(videoId) {
-       console.log('playWithVideoId: ' + videoId);
+       notiStorage.videoId = videoId;
+       if (!notiStorage.isPlaybackInHistory) {
+         notiStorage.playIndex = notiStorage.playHistory.length - 1;
+         notiStorage.playHistory.push(videoId);
+       }
        
-       /* var exec = function() {
-        *   console.log('hello from exec');
-        *   console.log(videoId);
-        *   player.loadVideoById(videoId);
-        *   
-        * };
-        * 
-        * if (!playerStats.ready) {
-        *   playerStats.readyCallables.push(exec);
-        * } else {
-        *   exec();
-        * }*/
+       _runWhenPlayerReady(function() {
+         player.loadVideoById(videoId);
+         getVideoData();
+       });
      }
 
-     function playVideo() {
-       player.playVideo();
+     function playerPlay() {
+       _runWhenPlayerReady(function() {
+         player.playVideo();
+       });
+
      }
 
-     function pauseVideo(){
-       player.pauseVideo();
+     function seekTo(timeInSeconds) {
+       _runWhenPlayerReady(function() {
+         try{
+           player.seekTo(timeInSeconds, true);
+         } catch(e) {};
+       });
      }
 
-     function stopVideo() {
-       player.stopVideo();
+     function seekForward(seconds) {
+       if (!seconds) {
+         seconds = 30;
+       }
+       try{
+         var t = player.getCurrentTime();
+         t = t + seconds;
+         t = Math.round(t);
+         player.seekTo(t, true);
+       } catch(e) {};
      }
 
+     function seekBackward(seconds) {
+       if (!seconds) {
+         seconds = 30;
+       }
+
+       try{
+         var t = player.getCurrentTime();
+         t = t - seconds;
+         t = Math.round(t);
+
+         if (t < 0) {
+           t = 0;
+         }
+         
+         player.seekTo(t, true);
+       } catch(e) {};
+     }
+
+     function playerPause(){
+       try{
+         player.pauseVideo();
+       } catch(e) {};
+     }
+
+     function playerStop() {
+       try{
+         player.stopVideo();
+       } catch(e) {};
+     }
+
+     function playerNextVideo(callbackOnDone) {
+     }
+
+     function playerPreviousVideo() {
+     }
+
+     function getVideoData() {
+     }
      
+     function getPlaybackPosition() {
+       try {
+         var t = player.getCurrentTime();
+         t = Math.round(t);
+         if (NotiPlay) {
+           NotiPlay.onPlaybackPosition(t);
+         }
+       }catch(e) {}
+     }
+
+     function setLoopVideo(isLoop) {
+
+     }
+
+     function toggleFullscreen() {
+     }
+     
+     function _runWhenPlayerReady(callable) {
+       if (!playerStats.ready) {
+         playerStats.readyCallables.push(callable);
+       } else {
+         callable();
+       };
+     }
+     
+     function _fetchVideoData(callback) {
+     }
+
+     function _getRelatedVideo(callback) {
+
+     }
     </script>
   </body>
 </html>

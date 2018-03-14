@@ -18,9 +18,6 @@ import org.jetbrains.anko.toast
 class FloatingWindowController(val c: Context, val service: Service) : BroadcastReceiver(),
         AnkoLogger {
 
-    var allowMoveOut = false
-    var allowPositionCorrection = false
-
     override fun onReceive(context: Context?, intent: Intent?) {
         intent?.run {
 

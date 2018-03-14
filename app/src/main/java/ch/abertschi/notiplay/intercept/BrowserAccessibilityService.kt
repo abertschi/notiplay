@@ -63,12 +63,15 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
         }
 
         if (url != null) {
+            // info { "video URL: " + url }
             BrowserState.GET.updateVideoUrl(url, this)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun performSwypeUp() {
+
+        info { "--- performing scroll up" }
         try {
 
 
@@ -83,7 +86,7 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
             path.moveTo(middleXValue, middleYValue - topQuarterYValue);
             path.lineTo(middleXValue, middleYValue);
 
-            gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 100, 300))
+            gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 0, 100))
             dispatchGesture(gestureBuilder.build(), object : AccessibilityService.GestureResultCallback() {
                 override fun onCompleted(gestureDescription: GestureDescription) {
                     info("performing swype up gesture")
@@ -103,9 +106,10 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
         performOneScrol = true
         try {
             if (capturing) {
+                performOneScrol = false
                 performSwypeUp()
+
             }
-            performOneScrol = false
         } catch (e: Exception) {
         }
 
@@ -142,18 +146,20 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
             }
 
             for (i in 0 until info.childCount) {
-                val child = info.getChild(i)
+                val child = info.getChild(i) ?: continue
                 dfs(child)
                 child?.recycle()
             }
         } catch (e: Exception) {
-            info(e)
+            //info(e)
         }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         setCapturingState(event)
         readUrl()
+
+
         if (capturing) {
             parseSeekPosition(event)
         }

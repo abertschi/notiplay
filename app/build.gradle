@@ -54,6 +54,9 @@ dependencies {
 // Below is just an example for People REST API access
     compile 'com.google.apis:google-api-services-youtube:v3-rev192-1.23.0'
 
+    compile 'com.github.franmontiel:PersistentCookieJar:v1.0.1'
+
+
 }
 repositories {
 //    maven()

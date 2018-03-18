@@ -4,6 +4,7 @@ import android.annotation.TargetApi
 import android.os.Build
 import android.os.Handler
 import android.os.Looper.getMainLooper
+import android.support.annotation.Nullable
 import android.webkit.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,6 +31,7 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
     fun setDownloadInterceptor(h: DownloadHandle) {
         downloadHandle = h
     }
+
     fun enableDownloadInterceptor(state: Boolean) = fetchDownload
 
 
@@ -53,11 +55,13 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
         if (url.contains(jqueryUrl)) {
             return super.shouldInterceptRequest(view, url)
         } else {
-            return getNewResponse(url)
+            return getNewResponse(url, null)
         }
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    @Nullable
+    @org.jetbrains.annotations.Nullable
     override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?):
             WebResourceResponse? {
         val url = request?.url.toString()
@@ -81,11 +85,11 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
         return if (jqueryUrl in url) {
             super.shouldInterceptRequest(view, request)
         } else {
-            getNewResponse(url)
+            getNewResponse(url, request)
         }
     }
 
-    private fun getNewResponse(url: String): WebResourceResponse? {
+    private fun getNewResponse(url: String, req: WebResourceRequest?): WebResourceResponse? {
         if (url.contains("/endProcess")) {
             onStop?.invoke()
             return WebResourceResponse("bgsType", "someEncoding", null)
@@ -93,15 +97,14 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
 
         info { "#intercepting: " + url }
 
-        if (url.contains("googlevideo.com/videoplayback?")) {
-            if (fetchDownload && downloadHandle != null) {
-                downloadHandle?.onVideoUrlFetch(url)
-            }
-        }
 
         val address = url.trim { it <= ' ' }
+        // if (!url.contains("youtube")) return null
+
         var origin = if (url.startsWith(googleYtV3VideoApi)) {
             "null"
+        } else if (url.startsWith("https://fonts.gst")) {
+            "https://fonts.gstatic.com"
         } else {
             "https://www.youtube.com"
         }
@@ -118,29 +121,44 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
                                 "false")
             }
 
-            if (fetchDownload) {
-                b.addHeader("user-agent",
-                        "Mozilla/5.0 (iPad; CPU OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) CriOS/30.0.1599.12 Mobile/11A465 Safari/8536.25 (3B92C18B-D9DE-4CB7-A02A-22FD2AF17C8F)")
-//                                "AppleWebKit/536.26 (KHTML, like Gecko) " +
-//                                "Version/6.0 Mobile/10A5376e Safari/8536.25")
-            }
             val request = b.build()
 
             val response = httpClient.newCall(request).execute()
             val headers = HashMap<String, String>()
 
-            if (fixOrigin) {
-                headers.run {
-                    put("Connection", "close")
-                    put("Access-Control-Allow-Methods", "POST,GET,OPTIONS,PUT,DELETE")
-                    put("Access-Control-Max-Age", "1200")
-                    put("Access-Control-Allow-Origin", origin)
-                    put("Access-Control-Allow-Credentials", "true")
-                    put("Access-Control-Expose-Headers", httpHeaders)
-                    put("Access-Control-Allow-Headers", httpHeaders)
+
+            headers.run {
+                put("Connection", "close")
+                put("Access-Control-Allow-Methods", "POST,GET,OPTIONS,PUT,DELETE")
+                put("Access-Control-Max-Age", "1200")
+                put("Access-Control-Allow-Origin", origin)
+                put("Access-Control-Allow-Credentials", "true")
+                put("Access-Control-Expose-Headers", httpHeaders)
+                put("Access-Control-Allow-Headers", httpHeaders)
+            }
+
+            val contentType = response.headers().get("Content-Type")
+            var contentTypeRes: String? = null
+
+            contentType?.run {
+                val contentTypeArry = contentType.split(";")
+                try {
+
+                    contentTypeRes = contentTypeArry[0]
+                    info { "CONTENT TYPE RES: " + contentTypeRes }
+                } catch (e: Exception) {
                 }
             }
-            return WebResourceResponse(null,
+
+            if (fetchDownload && contentTypeRes != null) {
+                if (contentTypeRes!!.startsWith("audio/")) {
+                    downloadHandle?.onVideoUrlFetch(contentTypeRes!!, url)
+                } else if (contentTypeRes!!.startsWith("video/")) {
+                    downloadHandle?.onVideoUrlFetch(contentTypeRes!!, url)
+                }
+            }
+
+            return WebResourceResponse(contentTypeRes,
                     response.header("content-encoding", "utf-8")
                     , 200,
                     "Ok",
@@ -167,7 +185,7 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
     }
 
     interface DownloadHandle {
-        fun onVideoUrlFetch(url: String)
+        fun onVideoUrlFetch(contentType: String, url: String)
         fun onPageinished(view: WebView?, url: String?)
     }
 }

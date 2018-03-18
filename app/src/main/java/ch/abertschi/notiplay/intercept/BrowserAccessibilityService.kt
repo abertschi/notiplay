@@ -63,7 +63,6 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
         }
 
         if (url != null) {
-            // info { "video URL: " + url }
             BrowserState.GET.updateVideoUrl(url, this)
         }
     }
@@ -73,7 +72,6 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
 
         info { "--- performing scroll up" }
         try {
-
 
             val displayMetrics = resources.displayMetrics
 
@@ -105,12 +103,11 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
     fun performSwypeUpIfInValidApp() {
         performOneScrol = true
         try {
-            if (capturing) {
-                performOneScrol = false
-                performSwypeUp()
-
-            }
+            performSwypeUp()
+            // dont check for capture flag here as it seems to work better without
+            performOneScrol = false
         } catch (e: Exception) {
+            wtf("Perform swype up failed", e)
         }
 
     }
@@ -132,7 +129,6 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
             if (info == null)
                 return
             if (info.text != null && info.text.length > 0) {
-//                info(info.text.toString() + " class: " + info.className + " " + info.viewIdResourceName)
                 val g = youtubeTimeSeek.find(info.text)
 
                 if (g?.groups?.size!! > 0
@@ -158,7 +154,6 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         setCapturingState(event)
         readUrl()
-
 
         if (capturing) {
             parseSeekPosition(event)

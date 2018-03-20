@@ -80,7 +80,7 @@ class NotiplayActivity : AppCompatActivity() {
             return
 
         } else {
-            notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, "-CzBYn7iRSI")
+            notiIntent.putExtra(PlaybackService.EXTRA_VIDEO_ID, "Qs7KnELEbKU")
             notiIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
             startService(notiIntent)
             ActivityCompat.finishAffinity(this)

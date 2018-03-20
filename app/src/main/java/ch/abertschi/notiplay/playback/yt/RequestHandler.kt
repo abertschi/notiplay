@@ -8,9 +8,11 @@ import android.support.annotation.Nullable
 import android.webkit.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
 import org.mortbay.log.Log.warn
+import java.io.InputStream
 
 /**
  * Created by abertschi on 23.02.18.
@@ -18,7 +20,10 @@ import org.mortbay.log.Log.warn
 class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
 
     var onStop: (() -> Unit)? = null
-
+    var userAgentIphone4 = "Mozilla/5.0(iPad; U; CPU iPhone OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10"
+    var userAgentIphone5 = "Mozilla/5.0 (iPhone; CPU iPhone OS 5_0 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A334 Safari/7534.48.3"
+    var useragent = userAgentIphone4
+    var userAgentIpad = "Mozilla/5.0 (iPad; CPU OS 7_0 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) CriOS/30.0.1599.12 Mobile/11A465 Safari/8536.25 (3B92C18B-D9DE-4CB7-A02A-22FD2AF17C8F"
     val handler = Handler(getMainLooper())
 
     private var fetchDownload = true
@@ -112,6 +117,10 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
             val b = Request.Builder()
                     .url(address)
 
+            b.addHeader("User-Agent",
+                    useragent)
+//
+
 
             if (fixOrigin) {
                 b.addHeader("Origin", origin)
@@ -121,6 +130,9 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
                                 "false")
             }
 
+            if (req?.method == "POST") {
+                 b.post(RequestBody.create(null, ""))
+            }
             val request = b.build()
 
             val response = httpClient.newCall(request).execute()
@@ -134,6 +146,7 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
                 put("Access-Control-Allow-Origin", origin)
                 put("Access-Control-Allow-Credentials", "true")
                 put("Access-Control-Expose-Headers", httpHeaders)
+                put("User-Agent", useragent)
                 put("Access-Control-Allow-Headers", httpHeaders)
             }
 
@@ -158,12 +171,24 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
                 }
             }
 
+            var stream: InputStream? = response.body()?.byteStream()
+            if (!contentTypeRes!!.contains("video") && !contentTypeRes!!.contains("audio")
+            && !contentTypeRes!!.contains("text/html")) {
+                val str = response.body()!!.string()
+                stream = str.byteInputStream()
+
+                println("=== response ====")
+                println(str)
+                System.out.flush()
+                println("=== response ====")
+            }
+
             return WebResourceResponse(contentTypeRes,
                     response.header("content-encoding", "utf-8")
                     , 200,
                     "Ok",
                     headers,
-                    response.body()?.byteStream())
+                    stream)
 
         } catch (e: Exception) {
             warn("error with " + address)

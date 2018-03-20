@@ -147,7 +147,11 @@
        }
        
        _runWhenPlayerReady(function() {
-         player.loadVideoById(videoId);
+         player.loadVideoById(videoId, {
+           'suggestedQuality': 'small'
+         });
+         player.setPlaybackQuality('small');
+         player.mute();
          getVideoData();
        });
      }

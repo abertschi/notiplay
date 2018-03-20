@@ -437,7 +437,7 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 //
 //                        } else if ((screenSize.second - (event.rawY + h - event.y).absoluteValue
 //                                        <= padding)) {
-//                            this@FloatingWindow.alpha = (h - event.y) / h
+//                            this@FlouuhatingWindow.alpha = (h - event.y) / h
 //                        } else {
 //                            this@FloatingWindow.alpha = 1f
 //                            isAlphaActive = false

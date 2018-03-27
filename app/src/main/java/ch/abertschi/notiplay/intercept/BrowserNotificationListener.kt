@@ -1,49 +1,50 @@
 package ch.abertschi.notiplay.intercept
 
-import android.app.Notification
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.wtf
 
 
 /**
  * Created by abertschi on 24.02.18.
  */
-class BrowserNotificationListener : NotificationListenerService() {
+class BrowserNotificationListener : NotificationListenerService(), AnkoLogger {
+
+    private fun isChrome(str: String) = str.contains("com.android.chrome")
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.groupKey.toString().contains("com.android.chrome")) {
+        try {
+            isChrome(sbn.groupKey.toString()).run {
+                val extras: Bundle = sbn.notification.extras ?: throw Exception("bundle is null")
+                var key = extras.get("android.title") as String?
+                        ?: throw Exception("no android.title")
 
-            val extras: Bundle? = sbn.notification.extras
-            var playbackTile = extras?.get("android.title") as String?
-            var key = playbackTile
-            if (extras == null) return
-            //sbn.
-            for(e in extras!!.keySet()) {
-                println(e.toString())
-                println(extras.get(e))
-            }
-            if (key == null) return
-            try {
-                println(key)
                 val actions = sbn.notification.actions
-                var playPauseAction: Notification.Action?
-                if (actions.size == 3) {
-                    playPauseAction = sbn.notification.actions[1]
-                } else if (actions.size == 5) {
-                    playPauseAction = sbn.notification.actions[2]
-                } else {
-                    throw Exception("what does the fox say? wrong number of notification actions")
+
+                var playPauseAction = when {
+                    actions.size == 3 -> actions[1]
+                    actions.size == 5 -> actions[2]
+                    else -> throw Exception("unknown action size")
                 }
-                if (playPauseAction.title == "Pause") {
-                    BrowserState.GET.onPlaybackStart(key, this)
-                    BrowserState.GET.updateVideoTitle(playbackTile, this)
-                } else if (playPauseAction.title == "Play") {
-                    BrowserState.GET.updateVideoTitle(playbackTile, this)
-                    BrowserState.GET.onPlaybackPause(key, this)
-                }
-            } catch (e: Exception) {
+
+                BrowserState.GET.onPlaybackStart(key, this@BrowserNotificationListener)
+                BrowserState.GET.updateVideoTitle(key, this@BrowserNotificationListener)
+
+                // cant do this: language dependent!
+//                if (playPauseAction.title == "Pause") {
+//                    BrowserState.GET.onPlaybackStart(key, this@BrowserNotificationListener)
+//                    BrowserState.GET.updateVideoTitle(key, this@BrowserNotificationListener)
+//
+//                } else if (playPauseAction.title == "Play") {
+//                    BrowserState.GET.updateVideoTitle(key, this@BrowserNotificationListener)
+//                    BrowserState.GET.onPlaybackPause(key, this@BrowserNotificationListener)
+//                }
+
             }
+        } catch (e: Exception) {
+            wtf("Browser notfication listener failed", e)
         }
     }
 

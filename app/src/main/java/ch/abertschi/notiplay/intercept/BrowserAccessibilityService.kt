@@ -20,9 +20,9 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
 
     private var performOneScrol = false
     private var capturing = false
-    private var tryAgain = false
     private val youtubeTimeSeek = Regex("^[0-9]*\\:[0-9]{2}$")
-    private var lastUrl = ""
+
+    private val supportedBrowserPackage = "chrome"
 
     companion object {
         var INSTANCE: BrowserAccessibilityService? = null
@@ -36,18 +36,21 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
     }
 
     fun setCapturingState(event: AccessibilityEvent?) {
-        if (event!!.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            if (event.getPackageName() != null && event.getClassName() != null) {
-                Log.i("Foreground App", event.getPackageName().toString());
-                if (event.packageName.toString().contains("chrome")) {
-                    BrowserState.GET.onOriginPlayerInForeground(true, this)
-                    capturing = true
+        try {
+            if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                if (event.getPackageName() != null && event.getClassName() != null) {
+                    Log.i("Foreground App", event.getPackageName().toString())
+                    if (event.packageName.toString().contains(supportedBrowserPackage)) {
+                        BrowserState.GET.onOriginPlayerInForeground(true, this)
+                        capturing = true
 
-                } else {
-                    BrowserState.GET.onOriginPlayerInForeground(false, this)
-                    capturing = false
+                    } else {
+                        BrowserState.GET.onOriginPlayerInForeground(false, this)
+                        capturing = false
+                    }
                 }
             }
+        } catch (e: Exception) {
         }
     }
 
@@ -120,7 +123,6 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
                     dfs(nodeInfo)
             }
         } finally {
-
         }
     }
 
@@ -152,17 +154,20 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        setCapturingState(event)
-        readUrl()
+        try {
+            setCapturingState(event)
+            readUrl()
 
-        if (capturing) {
-            parseSeekPosition(event)
-        }
+            if (capturing) {
+                parseSeekPosition(event)
+            }
 
-        if (capturing && performOneScrol) {
-            performOneScrol = false
-            performSwypeUp()
+            if (capturing && performOneScrol) {
+                performOneScrol = false
+                performSwypeUp()
 
+            }
+        } finally {
         }
     }
 }

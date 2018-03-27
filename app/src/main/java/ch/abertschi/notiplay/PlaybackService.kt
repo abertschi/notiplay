@@ -32,12 +32,13 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     lateinit var playbackNotifications: PlaybackNotificationManager
     private var currentVideoId: String = ""
 
-    private var playbackManager: PlaybackManager = PlaybackManager(this, this, this)
+    private var playbackManager: PlaybackManager? = null
 
 
     override fun onCreate() {
+        playbackManager = PlaybackManager(this, this, this)
         mediaSession = MediaSessionCompat(applicationContext, "notiplay_session")
-        mediaSession.setCallback(playbackManager.getMediaSessionCallback())
+        mediaSession.setCallback(playbackManager!!.getMediaSessionCallback())
 
         mediaSession.setFlags(
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
@@ -85,7 +86,7 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
 
     fun playVideoId(command: PlaybackManager.StartPlaybackWithVideoIdRequest) {
         currentVideoId = command.id
-        playbackManager.startPlaybackWithVideoId(command)
+        playbackManager!!.startPlaybackWithVideoId(command)
     }
 
     fun getSessionToken() = mediaSession.sessionToken
@@ -111,6 +112,10 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     fun shutdownService() {
         val myService = Intent(this, this::class.java)
         stopService(myService)
+
+        super.stopSelf()
+        playbackManager = null
+
 
     }
 

@@ -75,9 +75,12 @@ class BrowserState : AnkoLogger {
 
         if (videoUrl != url) {
             videoUrl = url
-            if (currentState == State.INIT) {
-                showNotification(context)
-            }
+            videoTitle = null
+            showNotification(context)
+
+//            if (currentState == State.INIT) {
+//
+//            }
 
         }
     }
@@ -247,8 +250,8 @@ class BrowserState : AnkoLogger {
                 .addAction(R.drawable.common_google_signin_btn_icon_dark,
                         "AUDIO ONLY", audioOnlyPendingIntent)
 
-                .addAction(R.drawable.common_google_signin_btn_icon_dark,
-                        "DOWNLOAD", audioOnlyPendingIntent)
+//                .addAction(R.drawable.common_google_signin_btn_icon_dark,
+//                        "DOWNLOAD", audioOnlyPendingIntent)
 
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

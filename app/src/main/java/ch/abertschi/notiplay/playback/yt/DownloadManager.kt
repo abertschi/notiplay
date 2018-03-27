@@ -16,12 +16,10 @@ import java.util.*
 class DownloadManager : AnkoLogger, RequestHandler.DownloadHandle {
 
     override fun onPageinished(view: WebView?, url: String?) {
-
     }
 
     private var lastValidAudioUrl: String? = null
     private var lastValidVideoUrl: String? = null
-
 
     override fun onVideoUrlFetch(contentType: String, url: String) {
         var splits = url.split("&")

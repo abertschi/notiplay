@@ -1,5 +1,7 @@
 package ch.abertschi.notiplay.view
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.LayoutTransition
 import android.animation.ValueAnimator
 import android.content.Context
@@ -219,7 +221,8 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
     }
 
 
-    private fun alignFloatingWindow() {
+    private fun alignFloatingWindow(callBackOnDone: (() -> Unit)? = null,
+                                    moveToTopLeft: Boolean = false) {
         layoutParams?.run {
             actionUpX = if (x < 0) 0 else x
             actionUpY = if (y < 0) 0 else y
@@ -240,15 +243,23 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
             val h = (screenHeight / 3.0).roundToInt()
             val w = (screenWidth / 2.0).roundToInt()
 
+            var targetY = 0
+            var targetX = 0
             val padding = getStatusBarHeight() / 2
-            val targetY = when (actionUpY + viewHeight / 2) {
-                in 0..h -> padding + getStatusBarHeight()
-                in (h + 1)..(2 * h) -> padding + (screenHeight / 2) - (viewHeight / 2)
-                else -> screenHeight - padding - viewHeight
-            }
-            val targetX = when (actionUpX + viewWidth / 2) {
-                in 0..w -> padding
-                else -> screenWidth - padding - viewWidth
+            if (moveToTopLeft) {
+                targetY = padding + getStatusBarHeight()
+                targetX = padding
+
+            } else {
+                targetY = when (actionUpY + viewHeight / 2) {
+                    in 0..h -> padding + getStatusBarHeight()
+                    in (h + 1)..(2 * h) -> padding + (screenHeight / 2) - (viewHeight / 2)
+                    else -> screenHeight - padding - viewHeight
+                }
+                targetX = when (actionUpX + viewWidth / 2) {
+                    in 0..w -> padding
+                    else -> screenWidth - padding - viewWidth
+                }
             }
             val fraction = it.animatedFraction
             var xSign = 1
@@ -268,7 +279,15 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
                 }
             }
         }
+        anim.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                println("animation done")
+                callBackOnDone?.invoke()
+            }
+        })
         anim.start()
+        println("animation started")
+
     }
 
     // width, height
@@ -289,12 +308,20 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         stateComposition.y = layoutParams!!.y
     }
 
+    var running = false
     fun setSizeToHalfScreen() {
-        applyLayout(stateHalfScreen)
-        stateActive = stateHalfScreen
-        context.runOnUiThread {
-            windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+        if (running) {
+            return
         }
+        running = true
+        alignFloatingWindow({
+            applyLayout(stateHalfScreen)
+            stateActive = stateHalfScreen
+            context.runOnUiThread {
+                windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+            }
+            running = false
+        }, true)
     }
 
     fun setSizeToFullScreen() {
@@ -347,9 +374,8 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
     private inner class GestureDetect : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent?): Boolean {
-            println("DOUBLE TABBBBBB!!!!!!!!!!!!!")
+            println("double tabbed")
             return super.onDoubleTap(e)
-
         }
     }
 
@@ -366,9 +392,8 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
         override fun onTouchEvent(view: InterceptTouchFrameLayout?, event: MotionEvent?): Boolean {
 
-//            println("ON TOUCHE")
-//            println("${stateActive.state} ${event!!.action} ///// ${stateActive.y}")
-
+            // TODO: improve this
+            if (running) return false
             when (event!!.action) {
                 MotionEvent.ACTION_DOWN -> {
                     val t = System.currentTimeMillis()

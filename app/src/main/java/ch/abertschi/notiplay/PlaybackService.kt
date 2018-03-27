@@ -12,13 +12,15 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import org.jetbrains.anko.AnkoLogger
 import java.util.concurrent.TimeUnit
 
 
 /**
  * Created by abertschi on 10.02.18.
  */
-class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackManager.PlaybackListener {
+class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackManager.PlaybackListener,
+AnkoLogger {
 
     companion object {
         val ACTION_INIT_WITH_ID = "action_init_with_id"
@@ -85,6 +87,8 @@ class PlaybackService : Service(), PlaybackManager.MetadataListener, PlaybackMan
     }
 
     fun playVideoId(command: PlaybackManager.StartPlaybackWithVideoIdRequest) {
+        playbackNotifications.stopNotifications()
+        playbackNotifications.startNotifications()
         currentVideoId = command.id
         playbackManager!!.startPlaybackWithVideoId(command)
     }

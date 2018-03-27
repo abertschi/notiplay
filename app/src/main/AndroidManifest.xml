@@ -52,7 +52,7 @@
 
         <service
             android:name=".intercept.BrowserNotificationListener"
-            android:label="noti2"
+            android:label="Notiplay"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:process=":background">
             <intent-filter>

@@ -18,7 +18,7 @@ class BrowserNotificationListener : NotificationListenerService(), AnkoLogger {
         try {
             isChrome(sbn.groupKey.toString()).run {
                 val extras: Bundle = sbn.notification.extras ?: throw Exception("bundle is null")
-                var key = extras.get("android.title") as String?
+                var key = extras.get("android.title")?.toString()
                         ?: throw Exception("no android.title")
 
                 val actions = sbn.notification.actions

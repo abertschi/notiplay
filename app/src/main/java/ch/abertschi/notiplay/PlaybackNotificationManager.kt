@@ -79,7 +79,9 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
             if (showPersistentNotification) {
                 service.startForeground(NOTIFICATION_ID, this)
             } else {
-                notificationManager?.notify(NOTIFICATION_ID, this)
+                 notificationManager?.notify(NOTIFICATION_ID, this)
+                service.stopForeground(false)
+
             }
         }
 
@@ -178,7 +180,6 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                     transportControls?.pause()
                     currentPlayPauseAction = PlayPauseAction.PLAY
 //                    service.stopForeground(true)
-                    service.stopForeground(false)
                     showPersistentNotification = false
                 }
                 ACTION_PLAY -> {

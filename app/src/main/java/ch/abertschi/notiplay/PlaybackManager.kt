@@ -210,8 +210,5 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         fun onPlaybackStarted()
         fun onPlaybackStoped()
         fun onPlaybackChanged(state: PlaybackStateCompat)
-
-        // https://developer.android.com/reference/android/support/v4/media/session/PlaybackStateCompat.Builder.html#addCustomAction(java.lang.String, java.lang.String, int)
-        // https://github.com/googlesamples/android-UniversalMusicPlayer/blob/67a35ffefff9cd1c04089284492caa73dde8cae3/mobile/src/main/java/com/example/android/uamp/playback/PlaybackManager.java
     }
 }

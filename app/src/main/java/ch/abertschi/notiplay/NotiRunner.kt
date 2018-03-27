@@ -19,13 +19,6 @@
 //import kotlin.concurrent.timerTask
 //
 //
-///**
-// * Created by abertschi on 07.01.18.
-// * api doc: https://developers.google.com/youtube/iframe_api_reference#seekTo
-// * use media session and intent api
-// * http://www.binpress.com/tutorial/using-android-media-style-notifications-with-media-session-controls/165
-// * https://stackoverflow.com/questions/11095122/how-to-make-my-android-app-appear-in-the-share-list-of-another-specific-app
-// */
 //
 //class NotiRunner : Service(), WebObserver {
 //    override fun onPlaybackEndReached() {

@@ -10,6 +10,7 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.support.v4.view.animation.FastOutSlowInInterpolator
 import android.util.DisplayMetrics
+import android.util.TypedValue
 import android.view.*
 import android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 import android.widget.FrameLayout
@@ -86,6 +87,12 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         applyLayout(stateActive)
         context.runOnUiThread {
             windowManager.updateViewLayout(this@FloatingWindow, layoutParams)
+        }
+
+        if (!isVisible) {
+            // restore default floating window padding
+            stateFloatScreen.x = floatingWindowXMargin()
+            stateFloatScreen.y = floatingWindowYMargin()
         }
 
     }
@@ -173,13 +180,13 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
 
         stateFloatScreen = StateComposition(State.SMALL_FLOATING,
                 (floatingWidth * widthScale).toInt(), floatingWidth,
-                0, 0,
+                floatingWindowXMargin(), floatingWindowYMargin(),
                 true,
                 true,
                 false,
                 false)
 
-        stateHalfScreen = StateComposition(State.HALF_SCREEN, _viewPortHeight / 3, _viewPortWidth,
+        stateHalfScreen = StateComposition(State.HALF_SCREEN, _viewPortHeight / 5 * 2, _viewPortWidth,
                 0, getStatusBarHeight(),
                 false,
                 false,
@@ -217,11 +224,14 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         context.runOnUiThread {
             windowManager.addView(this@FloatingWindow, layoutParams)
         }
-        alignFloatingWindow()
+        // alignFloatingWindow(moveToTopLeft = true)
     }
 
 
-    private fun alignFloatingWindow(callBackOnDone: (() -> Unit)? = null,
+    private fun floatingWindowXMargin() = getStatusBarHeight() / 2
+    private fun floatingWindowYMargin() = getActionBarHeight() + getStatusBarHeight() / 2 // padding + 2 * getStatusBarHeight()
+
+    fun alignFloatingWindow(callBackOnDone: (() -> Unit)? = null,
                                     moveToTopLeft: Boolean = false) {
         layoutParams?.run {
             actionUpX = if (x < 0) 0 else x
@@ -247,12 +257,12 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
             var targetX = 0
             val padding = getStatusBarHeight() / 2
             if (moveToTopLeft) {
-                targetY = padding + getStatusBarHeight()
-                targetX = padding
+                targetY = floatingWindowYMargin()
+                targetX = floatingWindowXMargin()
 
             } else {
                 targetY = when (actionUpY + viewHeight / 2) {
-                    in 0..h -> padding + getStatusBarHeight()
+                    in 0..h -> floatingWindowYMargin()
                     in (h + 1)..(2 * h) -> padding + (screenHeight / 2) - (viewHeight / 2)
                     else -> screenHeight - padding - viewHeight
                 }
@@ -363,13 +373,23 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         if (allowScroll) return super.computeScroll()
     }
 
+
+    private fun getActionBarHeight(): Int {
+        val tv = TypedValue()
+        if (context.theme.resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
+            return TypedValue.complexToDimensionPixelSize(tv.data, resources.displayMetrics) + getStatusBarHeight()
+        } else {
+            return getStatusBarHeight() * 5
+        }
+    }
+
     private fun getStatusBarHeight(): Int {
         var result = 0
         val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
         if (resourceId > 0) {
             result = resources.getDimensionPixelSize(resourceId)
         }
-        return (result / 3.0 * 2).toInt()
+        return (result).toInt()
     }
 
     private inner class GestureDetect : GestureDetector.SimpleOnGestureListener() {
@@ -517,4 +537,6 @@ class FloatingWindow(context: Context, val controller: FloatingWindowController)
         }
 
     }
+
+
 }

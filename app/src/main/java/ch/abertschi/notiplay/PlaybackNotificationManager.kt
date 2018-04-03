@@ -160,6 +160,7 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
     }
 
     fun stopNotifications() {
+        showPersistentNotification = false
         if (!started) return
         started = false
         showPersistentNotification = false
@@ -199,9 +200,11 @@ class PlaybackNotificationManager(val service: PlaybackService) : BroadcastRecei
                 ACTION_PREVIOUS -> transportControls?.skipToPrevious()
 
                 ACTION_SHOW_VIDEO_PLAYER -> {
+                    showPersistentNotification = false
                     transportControls?.sendCustomAction(ACTION_SHOW_VIDEO_PLAYER, null)
                 }
                 ACTION_SHOW_IN_SOURCE_APP -> {
+                    showPersistentNotification = false
                     transportControls?.sendCustomAction(ACTION_SHOW_IN_SOURCE_APP, null)
 
                 }

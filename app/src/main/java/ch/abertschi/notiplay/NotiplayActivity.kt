@@ -1,6 +1,7 @@
 package ch.abertschi.notiplay
 
 import android.annotation.TargetApi
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -8,11 +9,11 @@ import android.os.Bundle
 import android.provider.Settings
 import android.support.annotation.RequiresApi
 import android.support.v4.app.ActivityCompat
-import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
+import org.jetbrains.anko.toast
 
 
-class NotiplayActivity : AppCompatActivity() {
+class NotiplayActivity : Activity() {
 
     var OVERLAY_PERMISSION_REQ_CODE = 1234
     private val RC_AUTHORIZE_CONTACTS = 10
@@ -50,7 +51,7 @@ class NotiplayActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        this.toast("Loading video ...")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             grantOverlayPermission()

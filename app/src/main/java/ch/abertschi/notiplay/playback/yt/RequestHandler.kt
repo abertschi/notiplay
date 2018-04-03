@@ -177,10 +177,10 @@ class RequestHandler(val webView: WebView) : WebViewClient(), AnkoLogger {
                 val str = response.body()!!.string()
                 stream = str.byteInputStream()
 
-                println("=== response ====")
-                println(str)
-                System.out.flush()
-                println("=== response ====")
+//                println("=== response ====")
+//                println(str)
+//                System.out.flush()
+//                println("=== response ====")
             }
 
             return WebResourceResponse(contentTypeRes,

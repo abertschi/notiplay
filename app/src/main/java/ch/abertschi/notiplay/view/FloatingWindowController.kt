@@ -170,5 +170,9 @@ class FloatingWindowController(val c: Context, val service: Service) : Broadcast
         }
     }
 
+    fun alignWindow() {
+        floatingWindow?.alignFloatingWindow(moveToTopLeft = true)
+    }
+
 
 }

@@ -138,7 +138,9 @@ class PlaybackManager(val playbackService: PlaybackService, val metadataListener
         val cmd = {
             println("VIIDEO: ID: " + request.id)
             floatingWindowController?.setVisible(request.showPlayerUi) // todo: generalize this
+            floatingWindowController?.setHalfscreen()
             player.playVideoById(request.id)
+
             player.seekToPosition(request.seekPos.toInt())
             if (request.startState == PlaybackStartState.PLAY) {
                 player.playerPlay()

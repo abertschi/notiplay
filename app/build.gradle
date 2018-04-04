@@ -55,6 +55,7 @@ dependencies {
     compile 'com.google.apis:google-api-services-youtube:v3-rev192-1.23.0'
 
     compile 'com.github.franmontiel:PersistentCookieJar:v1.0.1'
+    compile 'com.android.support:percent:27.1.0'
 
 
 }

@@ -1,12 +1,426 @@
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_margin="0dp"
-    android:padding="0dp"
-    android:layout_height="match_parent"
-    tools:context="ch.abertschi.notiplay.HomeActivity">
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+
+    <RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="0dp"
+        android:padding="0dp"
+        tools:context="ch.abertschi.notiplay.HomeActivity">
+
+        <LinearLayout
+            android:id="@+id/settings"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="15dp">
+
+            <android.support.constraint.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                >
+
+                <LinearLayout
+                    android:id="@+id/left1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="left"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:paddingRight="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="6"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toLeftOf="@+id/right1"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingBottom="2dp"
+                        android:text="Enable Chrome Transition"
+
+                        android:textColor="#000000"
+                        android:textSize="15dp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Switch from a running YouTube video within Chrome to Notiplay. This requires access to an Accessibility Service."/>
 
 
-</RelativeLayout>
+                </LinearLayout>
+
+                <FrameLayout
+                    android:id="@+id/right1"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="2"
+                    app:layout_constraintLeft_toRightOf="@+id/left1"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <Button
+                        android:id="@+id/tryoutButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical|end"
+                        android:backgroundTint="#9238FF"
+                        android:text="GRANT"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp"
+                        android:textStyle="normal"/>
+                </FrameLayout>
+
+
+            </android.support.constraint.ConstraintLayout>
+
+            <View
+                android:id="@+id/sep3"
+                android:layout_width="fill_parent"
+                android:layout_height="1dip"
+                android:layout_marginBottom="15dp"
+                android:layout_marginTop="10dp"
+                android:background="#11000000"/>
+
+            <android.support.constraint.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+
+                >
+
+                <LinearLayout
+                    android:id="@+id/transitionYoutubeText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="left"
+
+                    android:layout_marginBottom="8dp"
+
+                    android:gravity="left"
+                    android:orientation="vertical"
+                    android:paddingRight="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="6"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toLeftOf="@+id/transitionYoutubeApp"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingBottom="2dp"
+                        android:text="Enable Youtube Transition"
+
+                        android:textColor="#000000"
+                        android:textSize="15dp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Switch from a running Youtube video within the YouTube App to Notiplay. In order for this to work, you need to enable the Watch History feature in your YouTube account and enable an Accessibility Service."></TextView>
+
+                </LinearLayout>
+
+
+                <FrameLayout
+                    android:id="@+id/transitionYoutubeApp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="2"
+                    app:layout_constraintLeft_toRightOf="@+id/transitionYoutubeText"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical|end"
+
+                        android:orientation="vertical">
+
+                        <Button
+                            android:id="@+id/loginbutton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+
+                            android:backgroundTint="#9238FF"
+                            android:text="LOGIN"
+                            android:textColor="@android:color/white"
+                            android:textSize="13dp"
+                            android:textStyle="normal"/>
+
+
+                        <Button
+                            android:id="@+id/button2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:backgroundTint="#9238FF"
+                            android:text="GRANT"
+                            android:textColor="@android:color/white"
+                            android:textSize="13dp"
+                            android:textStyle="normal"/>
+
+
+                    </LinearLayout>
+
+                    <!--<Button-->
+                    <!--android:id="@+id/grant2"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_gravity="center_vertical|end"-->
+                    <!--android:backgroundTint="#9238FF"-->
+                    <!--android:text="GRANT"-->
+                    <!--android:textColor="@android:color/white"-->
+                    <!--android:textSize="13dp"-->
+                    <!--android:textStyle="normal"/>-->
+
+                </FrameLayout>
+
+
+            </android.support.constraint.ConstraintLayout>
+
+            <View
+                android:id="@+id/sep2"
+                android:layout_width="fill_parent"
+                android:layout_height="1dip"
+                android:layout_marginTop="10dp"
+                android:background="#11000000"/>
+
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:paddingBottom="2dp"
+                android:text="Playback Settings"
+
+                android:textColor="#000000"
+                android:textSize="15dp"
+                android:textStyle="bold"/>
+
+            <android.support.constraint.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                >
+
+                <TextView
+                    android:id="@+id/playbacksettings1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="left"
+                    android:paddingRight="10dp"
+                    android:text="Loop same track"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="6"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toLeftOf="@+id/playbacksettingsRight1"
+                    app:layout_constraintTop_toTopOf="parent"></TextView>
+
+
+                <FrameLayout
+                    android:id="@+id/playbacksettingsRight1"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="2"
+                    app:layout_constraintLeft_toRightOf="@+id/playbacksettings1"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <Switch
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical|end"></Switch>
+
+
+                </FrameLayout>
+
+
+            </android.support.constraint.ConstraintLayout>
+
+            <android.support.constraint.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                >
+
+                <TextView
+                    android:id="@+id/playbacksettings2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="left"
+                    android:paddingRight="10dp"
+                    android:text="Playback Speed"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="6"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toLeftOf="@+id/playbacksettingsRight2"
+                    app:layout_constraintTop_toTopOf="parent"></TextView>
+
+
+                <FrameLayout
+                    android:id="@+id/playbacksettingsRight2"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="2"
+                    app:layout_constraintLeft_toRightOf="@+id/playbacksettings2"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <!--<Switch-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_gravity="center_vertical|end"/>-->
+
+                    <Button
+                        android:id="@+id/button3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="#9238FF"
+                        android:text="1x"
+                        android:layout_gravity="center_vertical|end"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp"
+                        android:textStyle="normal"/>
+
+                </FrameLayout>
+
+
+            </android.support.constraint.ConstraintLayout>
+
+            <View
+                android:id="@+id/sep4"
+                android:layout_width="fill_parent"
+                android:layout_height="1dip"
+                android:layout_marginBottom="15dp"
+                android:layout_marginTop="10dp"
+                android:background="#11000000"/>
+
+            <android.support.constraint.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                >
+
+
+                <LinearLayout
+                    android:id="@+id/aboutText1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="left"
+
+                    android:layout_marginBottom="8dp"
+
+                    android:gravity="left"
+                    android:orientation="vertical"
+                    android:paddingRight="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="6"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toLeftOf="@+id/aboutButton1"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingBottom="2dp"
+                        android:text="About"
+
+                        android:textColor="#000000"
+                        android:textSize="15dp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/about_text"></TextView>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/aboutButton1"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintHorizontal_weight="2"
+                    app:layout_constraintLeft_toRightOf="@+id/aboutText1"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <!--<Switch-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_gravity="center_vertical|end"/>-->
+
+                    <Button
+                        android:id="@+id/button4"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="#9238FF"
+                        android:text="DONATE"
+                        android:layout_gravity="end"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp"
+                        android:textStyle="normal"/>
+
+                    <Button
+                        android:id="@+id/button5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="#9238FF"
+                        android:text="TWITTER"
+                        android:layout_gravity="end"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp"
+                        android:textStyle="normal"/>
+
+                    <Button
+                        android:id="@+id/button6"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="#9238FF"
+                        android:text="WEB"
+                        android:layout_gravity="end"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp"
+                        android:textStyle="normal"/>
+
+                    <Button
+                        android:id="@+id/button7"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="#9238FF"
+                        android:text="CODE"
+                        android:layout_gravity="end"
+                        android:textColor="@android:color/white"
+                        android:textSize="13dp"
+                        android:textStyle="normal"/>
+
+                </LinearLayout>
+
+
+            </android.support.constraint.ConstraintLayout>
+
+            <View
+                android:id="@+id/sep6"
+                android:layout_width="fill_parent"
+                android:layout_height="1dip"
+                android:layout_marginBottom="15dp"
+                android:layout_marginTop="10dp"
+                android:background="#11000000"/>
+
+
+
+        </LinearLayout>
+
+    </RelativeLayout>
+</ScrollView>

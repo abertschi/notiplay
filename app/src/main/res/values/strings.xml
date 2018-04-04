@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Notiplay</string>
     <string name="server_client_id">592493616699-54vtls2boabl51va3m4o8ago65ms2csv.apps.googleusercontent.com</string>
+    <string name="about_text">This app is built with much <b>❤️</b> by <b>abertschi</b>. Get my latest #hacks and follow me on Twitter. Notiplay is OpenSource software and respects your privacy. If you can afford fancy coffee, please support my work. </string>
 </resources>

@@ -6,6 +6,6 @@
                        android:canPerformGestures="true"
                        android:canRequestTouchExplorationMode="false"
                        android:canRetrieveWindowContent="true"
+                       android:description="@string/browser_accessibility_service_text"
                        android:notificationTimeout="100"
-
     />

@@ -148,7 +148,7 @@ class BrowserAccessibilityService : AccessibilityService(), AnkoLogger {
                 dfs(child)
                 child?.recycle()
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             //info(e)
         }
     }

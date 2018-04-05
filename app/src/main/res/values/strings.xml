@@ -1,5 +1,20 @@
 <resources>
-    <string name="app_name">Notiplay</string>
     <string name="server_client_id">592493616699-54vtls2boabl51va3m4o8ago65ms2csv.apps.googleusercontent.com</string>
-    <string name="about_text">This app is built with much <b>❤️</b> by <b>abertschi</b>. Get my latest #hacks and follow me on Twitter. Notiplay is OpenSource software and respects your privacy. If you can afford fancy coffee, please support my work. </string>
+    <string name="about_text">This app is built with much <b>❤️</b> by <b>abertschi</b>. Get my latest #hacks and follow me on Twitter. Notiplay is OpenSource software and respects your privacy. If you can afford fancy coffee please consider donating. Download my donation app or contribute to the project on Github.</string>
+    <string name="chrome_transition_text">Switch from a running YouTube video within Chrome to Notiplay.</string>
+    <string name="chrome_transition_title">Enable Chrome Transition</string>
+    <string name="chrome_transition_enable">ENABLE</string>
+    <string name="youtube_transition_title">Enable Youtube Transition</string>
+    <string name="youtube_transition_text">Switch from a running Youtube video within the YouTube App to Notiplay. This requires the Watch-History feature turned on in your YouTube account.</string>
+    <string name="youtube_transition_login">LOGIN</string>
+    <string name="youtube_transition_grant">ENABLE</string>
+    <string name="playback_settings_title">Playback Settings</string>
+    <string name="loop_track">Loop same Track</string>
+    <string name="playback_speed">Playback Speed</string>
+    <string name="about_title">About</string>
+    <string name="donate_button">DONATE</string>
+    <string name="twitter_button">TWITTER</string>
+    <string name="web_button">WEB</string>
+    <string name="code_button">CODE</string>
+    <string name="browser_accessibility_service_text">Allow Notiplay to read the address bar in Chrome. Chrome sometimes hides the address bar when a scroll down action is performed. This service checks for the address bar and performs a scroll up gesture if it cannot find the adress bar in the viewport. With this service turned on, an notification appears as soon as the currently watched YouTube video is identified to transition to background playback with Notiplay. </string>
 </resources>
